@@ -65,6 +65,7 @@ export default function DashboardPage() {
   });
   const [recentInvoices, setRecentInvoices] = useState<any[]>([]);
   const [topTeams, setTopTeams] = useState<any[]>([]);
+  const [loginLogs, setLoginLogs] = useState<any[]>([]);
   const [statsLoading, setStatsLoading] = useState(true);
 
   // Load Session User & Dashboard Stats
@@ -80,14 +81,23 @@ export default function DashboardPage() {
         if (data.authenticated) {
           setUser(data.user);
 
-          // Fetch Live Statistics
+          // Fetch Live Statistics & Login Logs
           try {
-            const statsRes = await fetch("/api/dashboard/stats");
-            const statsData = await statsRes.json();
+            const [statsRes, logsRes] = await Promise.all([
+              fetch("/api/dashboard/stats"),
+              fetch("/api/auth/login-logs?limit=10"),
+            ]);
+            
             if (statsRes.ok) {
+              const statsData = await statsRes.json();
               setStats(statsData.stats || {});
               setRecentInvoices(statsData.recent_invoices || []);
               setTopTeams(statsData.top_teams || []);
+            }
+
+            if (logsRes.ok) {
+              const logsData = await logsRes.json();
+              setLoginLogs(logsData.logs || []);
             }
           } catch (e) {
             console.error("Failed to load dashboard stats:", e);
@@ -110,12 +120,21 @@ export default function DashboardPage() {
   const handleRefreshStats = async () => {
     setStatsLoading(true);
     try {
-      const statsRes = await fetch("/api/dashboard/stats");
-      const statsData = await statsRes.json();
+      const [statsRes, logsRes] = await Promise.all([
+        fetch("/api/dashboard/stats"),
+        fetch("/api/auth/login-logs?limit=10"),
+      ]);
+
       if (statsRes.ok) {
+        const statsData = await statsRes.json();
         setStats(statsData.stats || {});
         setRecentInvoices(statsData.recent_invoices || []);
         setTopTeams(statsData.top_teams || []);
+      }
+
+      if (logsRes.ok) {
+        const logsData = await logsRes.json();
+        setLoginLogs(logsData.logs || []);
       }
     } catch (e) {
       console.error(e);
@@ -407,6 +426,74 @@ export default function DashboardPage() {
                 ))
               )}
             </div>
+          </div>
+        </div>
+
+        {/* USER LOGIN ACTIVITY AUDIT LOGS SECTION */}
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-red-600" />
+                User Login Activity Audit Log
+              </h3>
+              <p className="text-xs text-slate-500 font-medium">
+                Real-time security logs tracking every user login attempt, IP address, status, and browser details.
+              </p>
+            </div>
+            <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-bold text-slate-700">
+              {loginLogs.length} Recent Logins
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50">
+                  <th className="py-3 px-4">Date & Time</th>
+                  <th className="py-3 px-4">User / Email</th>
+                  <th className="py-3 px-4">Role</th>
+                  <th className="py-3 px-4">IP Address</th>
+                  <th className="py-3 px-4">User Agent / Device</th>
+                  <th className="py-3 px-4 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs font-medium">
+                {loginLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-400 font-normal">
+                      No login audit activity recorded yet.
+                    </td>
+                  </tr>
+                ) : (
+                  loginLogs.map((log) => (
+                    <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-mono text-slate-600">
+                        {log.login_at ? new Date(log.login_at).toLocaleString("en-US", { dateStyle: "short", timeStyle: "medium" }) : "Just now"}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="font-bold text-slate-900 block">{log.user_name || log.email}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">{log.email}</span>
+                      </td>
+                      <td className="py-3.5 px-4 font-semibold text-slate-700">{log.role_name || "AGENT"}</td>
+                      <td className="py-3.5 px-4 font-mono text-slate-700">{log.ip_address || "127.0.0.1"}</td>
+                      <td className="py-3.5 px-4 font-mono text-[11px] text-slate-500 max-w-xs truncate" title={log.user_agent}>
+                        {log.user_agent || "Unknown Browser"}
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                          log.status === "SUCCESS"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-red-50 text-red-700 border-red-200"
+                        }`}>
+                          {log.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 

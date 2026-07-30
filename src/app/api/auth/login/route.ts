@@ -3,7 +3,75 @@ import { leuterioDb, commissionsDb } from "@/lib/db";
 import { RowDataPacket } from "mysql2";
 import crypto from "crypto";
 
+// Helper: Ensure user_login_logs table exists
+async function ensureLoginLogsTable() {
+  await commissionsDb.query(`
+    CREATE TABLE IF NOT EXISTS user_login_logs (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NULL,
+      member_id INT NULL,
+      email VARCHAR(255) NOT NULL,
+      user_name VARCHAR(255) NULL,
+      role_name VARCHAR(100) NULL,
+      ip_address VARCHAR(100) NULL,
+      user_agent TEXT NULL,
+      status VARCHAR(50) NOT NULL DEFAULT 'SUCCESS',
+      failure_reason VARCHAR(255) NULL,
+      login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_email (email),
+      INDEX idx_status (status),
+      INDEX idx_login_at (login_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+}
+
+// Helper: Log User Login Event
+async function recordLoginLog({
+  user_id = null,
+  member_id = null,
+  email,
+  user_name = null,
+  role_name = null,
+  ip_address = null,
+  user_agent = null,
+  status = "SUCCESS",
+  failure_reason = null,
+}: {
+  user_id?: number | null;
+  member_id?: number | null;
+  email: string;
+  user_name?: string | null;
+  role_name?: string | null;
+  ip_address?: string | null;
+  user_agent?: string | null;
+  status?: string;
+  failure_reason?: string | null;
+}) {
+  try {
+    await ensureLoginLogsTable();
+    await commissionsDb.query(`
+      INSERT INTO user_login_logs (user_id, member_id, email, user_name, role_name, ip_address, user_agent, status, failure_reason)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      user_id,
+      member_id,
+      email,
+      user_name,
+      role_name,
+      ip_address,
+      user_agent,
+      status,
+      failure_reason,
+    ]);
+  } catch (e) {
+    console.error("Failed to record login activity log:", e);
+  }
+}
+
 export async function POST(request: NextRequest) {
+  const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("x-real-ip") || "127.0.0.1";
+  const userAgent = request.headers.get("user-agent") || "Unknown Browser";
+
   try {
     const { email, password } = await request.json();
 
@@ -84,6 +152,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (rows.length === 0) {
+      await recordLoginLog({
+        email: searchStr,
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        status: "FAILED",
+        failure_reason: "User email or credentials not found",
+      });
+
       return NextResponse.json(
         { error: "Invalid email or credentials" },
         { status: 401 }
@@ -97,6 +173,18 @@ export async function POST(request: NextRequest) {
     const userRole = (user.role_name || "").toUpperCase();
 
     if (user.role_id && !allowedRoles.includes(userRole)) {
+      await recordLoginLog({
+        user_id: user.user_id,
+        member_id: user.member_id,
+        email: user.user_email || searchStr,
+        user_name: user.user_name,
+        role_name: userRole,
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        status: "FAILED_ROLE",
+        failure_reason: `Role '${userRole}' unauthorized`,
+      });
+
       return NextResponse.json(
         { error: `Role '${userRole}' is not authorized to access this dashboard.` },
         { status: 403 }
@@ -107,7 +195,7 @@ export async function POST(request: NextRequest) {
     const sessionToken = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days expiration
 
-    // 3. WRITE ONLY Session to commissions_hub database
+    // 3. WRITE Session to commissions_hub database
     const insertSessionSql = `
       INSERT INTO user_sessions (user_id, member_id, email, name, role_id, role_name, session_token, expires_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -124,7 +212,19 @@ export async function POST(request: NextRequest) {
       expiresAt,
     ]);
 
-    // 4. Return user info and set HTTP-only cookie
+    // 4. Record Successful Login in Activity Log
+    await recordLoginLog({
+      user_id: user.user_id,
+      member_id: user.member_id,
+      email: user.user_email || searchStr,
+      user_name: user.user_name,
+      role_name: userRole || "AGENT",
+      ip_address: ipAddress,
+      user_agent: userAgent,
+      status: "SUCCESS",
+    });
+
+    // 5. Return user info and set HTTP-only cookie
     const responseData = {
       success: true,
       user: {
