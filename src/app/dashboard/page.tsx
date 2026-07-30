@@ -66,6 +66,7 @@ export default function DashboardPage() {
   const [recentInvoices, setRecentInvoices] = useState<any[]>([]);
   const [topTeams, setTopTeams] = useState<any[]>([]);
   const [loginLogs, setLoginLogs] = useState<any[]>([]);
+  const [siteActivityLogs, setSiteActivityLogs] = useState<any[]>([]);
   const [statsLoading, setStatsLoading] = useState(true);
 
   // Load Session User & Dashboard Stats
@@ -81,11 +82,12 @@ export default function DashboardPage() {
         if (data.authenticated) {
           setUser(data.user);
 
-          // Fetch Live Statistics & Login Logs
+          // Fetch Live Statistics, Login Logs & Site Activity Logs
           try {
-            const [statsRes, logsRes] = await Promise.all([
+            const [statsRes, logsRes, actRes] = await Promise.all([
               fetch("/api/dashboard/stats"),
               fetch("/api/auth/login-logs?limit=10"),
+              fetch("/api/activity-logs?limit=15"),
             ]);
             
             if (statsRes.ok) {
@@ -98,6 +100,11 @@ export default function DashboardPage() {
             if (logsRes.ok) {
               const logsData = await logsRes.json();
               setLoginLogs(logsData.logs || []);
+            }
+
+            if (actRes.ok) {
+              const actData = await actRes.json();
+              setSiteActivityLogs(actData.logs || []);
             }
           } catch (e) {
             console.error("Failed to load dashboard stats:", e);
@@ -120,9 +127,10 @@ export default function DashboardPage() {
   const handleRefreshStats = async () => {
     setStatsLoading(true);
     try {
-      const [statsRes, logsRes] = await Promise.all([
+      const [statsRes, logsRes, actRes] = await Promise.all([
         fetch("/api/dashboard/stats"),
         fetch("/api/auth/login-logs?limit=10"),
+        fetch("/api/activity-logs?limit=15"),
       ]);
 
       if (statsRes.ok) {
@@ -135,6 +143,11 @@ export default function DashboardPage() {
       if (logsRes.ok) {
         const logsData = await logsRes.json();
         setLoginLogs(logsData.logs || []);
+      }
+
+      if (actRes.ok) {
+        const actData = await actRes.json();
+        setSiteActivityLogs(actData.logs || []);
       }
     } catch (e) {
       console.error(e);
@@ -489,6 +502,70 @@ export default function DashboardPage() {
                           {log.status}
                         </span>
                       </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* SITE-WIDE USER MOVEMENTS AUDIT LOGS SECTION */}
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-emerald-600" />
+                Site-Wide User Activity & Movement Audit Trail
+              </h3>
+              <p className="text-xs text-slate-500 font-medium">
+                Live audit trail recording all user actions across the platform (Invoices created, batch CSV uploads, locks/unlocks, cash advances, repayments, and branding edits).
+              </p>
+            </div>
+            <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold">
+              {siteActivityLogs.length} Recent Movements
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50">
+                  <th className="py-3 px-4">Timestamp</th>
+                  <th className="py-3 px-4">Action Type</th>
+                  <th className="py-3 px-4">Module</th>
+                  <th className="py-3 px-4">User</th>
+                  <th className="py-3 px-4">Activity Description</th>
+                  <th className="py-3 px-4">IP Address</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs font-medium">
+                {siteActivityLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-400 font-normal">
+                      No site movements recorded yet. Activity will appear as users perform actions.
+                    </td>
+                  </tr>
+                ) : (
+                  siteActivityLogs.map((act) => (
+                    <tr key={act.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-mono text-slate-600 whitespace-nowrap">
+                        {act.created_at ? new Date(act.created_at).toLocaleString("en-US", { dateStyle: "short", timeStyle: "medium" }) : "Just now"}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-800 border border-slate-200">
+                          {act.action_type}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-slate-700">{act.module_name}</td>
+                      <td className="py-3.5 px-4">
+                        <span className="font-bold text-slate-900 block">{act.user_name || "System User"}</span>
+                        {act.user_email && <span className="text-[10px] text-slate-400 font-mono">{act.user_email}</span>}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-800 font-medium max-w-md">
+                        {act.description}
+                      </td>
+                      <td className="py-3.5 px-4 font-mono text-slate-600">{act.ip_address || "127.0.0.1"}</td>
                     </tr>
                   ))
                 )}

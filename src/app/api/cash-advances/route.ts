@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { commissionsDb } from "@/lib/db";
+import { logSiteActivity } from "@/lib/activityLogger";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 // Helper: Ensure tables exist
@@ -145,6 +146,9 @@ export async function GET(request: NextRequest) {
 // POST: Issue/Disburse a new Cash Advance to an agent
 export async function POST(request: NextRequest) {
   try {
+    const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("x-real-ip") || "127.0.0.1";
+    const userAgent = request.headers.get("user-agent") || "Unknown Browser";
+
     await ensureCashAdvanceTables();
 
     const body = await request.json();
@@ -251,6 +255,17 @@ export async function POST(request: NextRequest) {
       remarks || null,
       JSON.stringify(profileSnapshot),
     ]);
+
+    await logSiteActivity({
+      user_name: agent_name,
+      user_email: agent_email || undefined,
+      action_type: "DISBURSE_CASH_ADVANCE",
+      module_name: "CASH_ADVANCES",
+      description: `Disbursed ${currency || "AED"} ${advAmtNum.toLocaleString()} Cash Advance #${caCode} to ${agent_name}`,
+      metadata: { cash_advance_id: result.insertId, cash_advance_code: caCode, advance_amount: advAmtNum },
+      ip_address: ipAddress,
+      user_agent: userAgent,
+    });
 
     return NextResponse.json({
       success: true,

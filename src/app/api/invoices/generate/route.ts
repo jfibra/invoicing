@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { commissionsDb } from "@/lib/db";
+import { logSiteActivity } from "@/lib/activityLogger";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 export async function POST(request: NextRequest) {
   try {
+    const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("x-real-ip") || "127.0.0.1";
+    const userAgent = request.headers.get("user-agent") || "Unknown Browser";
+
     const body = await request.json();
     const {
       invoice_type,
@@ -146,17 +150,6 @@ export async function POST(request: NextRequest) {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    try {
-      await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN particular_title VARCHAR(255) NULL AFTER template_style");
-      await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN commission_status VARCHAR(100) NULL AFTER particular_title");
-      await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN project_location VARCHAR(255) NULL AFTER project_name");
-      await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN buyer_name VARCHAR(255) NULL AFTER spa_reference");
-      await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN project_value DECIMAL(15,2) NULL AFTER buyer_name");
-      await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN commission_received DECIMAL(15,2) NULL AFTER project_value");
-      await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN commission_rate DECIMAL(5,2) NULL AFTER commission_received");
-      await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN deductibles JSON NULL AFTER remarks");
-    } catch (e) {}
-
     const [result] = await commissionsDb.query<ResultSetHeader>(`
       INSERT INTO generated_invoices 
       (invoice_number, invoice_type, template_style, particular_title, commission_status, member_id, agent_code, agent_name, agent_email, team_name, subteam_name, developer_name, project_name, project_location, unit_number, spa_reference, buyer_name, project_value, commission_received, commission_rate, net_amount, vat_rate, vat_amount, gross_amount, currency, status, issued_date, remarks, deductibles, profile_snapshot)
@@ -192,6 +185,18 @@ export async function POST(request: NextRequest) {
       JSON.stringify(deductiblesArr),
       JSON.stringify(profileSnapshot),
     ]);
+
+    // Record Site Activity Audit Log
+    await logSiteActivity({
+      user_name: agent_name,
+      user_email: agent_email || undefined,
+      action_type: "CREATE_INVOICE",
+      module_name: "INVOICES",
+      description: `Generated ${invoice_type || "TAX_INVOICE"} invoice #${invoiceNumber} for ${agent_name} (${currency || "AED"} ${grossNum.toLocaleString()})`,
+      metadata: { invoice_id: result.insertId, invoice_number: invoiceNumber, gross_amount: grossNum },
+      ip_address: ipAddress,
+      user_agent: userAgent,
+    });
 
     return NextResponse.json({
       success: true,

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { commissionsDb } from "@/lib/db";
+import { logSiteActivity } from "@/lib/activityLogger";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 export async function POST(request: NextRequest) {
   try {
+    const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("x-real-ip") || "127.0.0.1";
+    const userAgent = request.headers.get("user-agent") || "Unknown Browser";
+
     const body = await request.json();
     const { invoices } = body;
 
@@ -193,6 +197,17 @@ export async function POST(request: NextRequest) {
       } catch (err: any) {
         errors.push(`Row ${rowIndex} (${item.agent_name}): ${err.message}`);
       }
+    }
+
+    if (createdInvoices.length > 0) {
+      await logSiteActivity({
+        action_type: "BATCH_INVOICES",
+        module_name: "INVOICES",
+        description: `Processed CSV batch upload generating ${createdInvoices.length} invoices`,
+        metadata: { created_count: createdInvoices.length },
+        ip_address: ipAddress,
+        user_agent: userAgent,
+      });
     }
 
     return NextResponse.json({

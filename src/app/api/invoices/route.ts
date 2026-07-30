@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { commissionsDb } from "@/lib/db";
+import { logSiteActivity } from "@/lib/activityLogger";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 // Helper: Ensure generated_invoices table exists
@@ -48,14 +49,6 @@ async function ensureInvoicesTable() {
   `);
 
   try {
-    await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN template_style VARCHAR(50) DEFAULT 'modern_slate' AFTER invoice_type");
-  } catch (e) {}
-
-  try {
-    await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN is_locked TINYINT(1) DEFAULT 0 AFTER status");
-  } catch (e) {}
-
-  try {
     await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN particular_title VARCHAR(255) NULL AFTER template_style");
     await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN commission_status VARCHAR(100) NULL AFTER particular_title");
     await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN project_location VARCHAR(255) NULL AFTER project_name");
@@ -67,11 +60,10 @@ async function ensureInvoicesTable() {
   } catch (e) {}
 }
 
-// GET: List/Track all generated invoices from commissions_hub with filters
+// GET: List/Filter invoice history
 export async function GET(request: NextRequest) {
   try {
     await ensureInvoicesTable();
-
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const type = searchParams.get("type") || "";
@@ -84,9 +76,9 @@ export async function GET(request: NextRequest) {
     const queryParams: any[] = [];
 
     if (search) {
-      whereClause += ` AND (invoice_number LIKE ? OR agent_name LIKE ? OR agent_code LIKE ? OR developer_name LIKE ? OR project_name LIKE ? OR buyer_name LIKE ? OR particular_title LIKE ? OR commission_status LIKE ?)`;
+      whereClause += ` AND (invoice_number LIKE ? OR agent_name LIKE ? OR agent_code LIKE ? OR developer_name LIKE ? OR project_name LIKE ?)`;
       const term = `%${search}%`;
-      queryParams.push(term, term, term, term, term, term, term, term);
+      queryParams.push(term, term, term, term, term);
     }
 
     if (type) {
@@ -99,14 +91,12 @@ export async function GET(request: NextRequest) {
       queryParams.push(status);
     }
 
-    // Count Total Matching Invoices
     const [countRows] = await commissionsDb.query<RowDataPacket[]>(
       `SELECT COUNT(*) as total FROM generated_invoices ${whereClause}`,
       queryParams
     );
     const total = countRows[0]?.total || 0;
 
-    // Fetch Summary KPI Totals
     const [kpiRows] = await commissionsDb.query<RowDataPacket[]>(
       `SELECT 
         COUNT(*) as total_count,
@@ -117,7 +107,6 @@ export async function GET(request: NextRequest) {
     );
     const kpis = kpiRows[0] || { total_count: 0, total_net: 0, total_vat: 0, total_gross: 0 };
 
-    // Query Invoice Records
     const [invoices] = await commissionsDb.query<RowDataPacket[]>(
       `SELECT * FROM generated_invoices ${whereClause} ORDER BY id DESC LIMIT ? OFFSET ?`,
       [...queryParams, limit, offset]
@@ -146,6 +135,9 @@ export async function GET(request: NextRequest) {
 // PUT: Edit Invoice Details OR Toggle Lock Status
 export async function PUT(request: NextRequest) {
   try {
+    const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("x-real-ip") || "127.0.0.1";
+    const userAgent = request.headers.get("user-agent") || "Unknown Browser";
+
     await ensureInvoicesTable();
     const body = await request.json();
     const { id, action, is_locked } = body;
@@ -157,10 +149,23 @@ export async function PUT(request: NextRequest) {
     // Scenario A: Lock / Unlock Toggle Action
     if (action === "toggle_lock") {
       const newLockState = is_locked ? 1 : 0;
+      const [existing] = await commissionsDb.query<RowDataPacket[]>("SELECT invoice_number FROM generated_invoices WHERE id = ?", [id]);
+      const invNum = existing[0]?.invoice_number || `ID #${id}`;
+
       await commissionsDb.query("UPDATE generated_invoices SET is_locked = ? WHERE id = ?", [
         newLockState,
         id,
       ]);
+
+      await logSiteActivity({
+        action_type: newLockState ? "LOCK_INVOICE" : "UNLOCK_INVOICE",
+        module_name: "INVOICES",
+        description: `${newLockState ? "Locked" : "Unlocked"} invoice ${invNum}`,
+        metadata: { invoice_id: id, invoice_number: invNum, is_locked: newLockState },
+        ip_address: ipAddress,
+        user_agent: userAgent,
+      });
+
       return NextResponse.json({
         success: true,
         message: newLockState ? "Invoice locked successfully" : "Invoice unlocked for editing",
@@ -169,9 +174,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Scenario B: Update Invoice Data
-    // 1. Check if invoice is locked
     const [existing] = await commissionsDb.query<RowDataPacket[]>(
-      "SELECT is_locked FROM generated_invoices WHERE id = ?",
+      "SELECT is_locked, invoice_number, agent_name FROM generated_invoices WHERE id = ?",
       [id]
     );
 
@@ -227,13 +231,10 @@ export async function PUT(request: NextRequest) {
 
     const deductiblesArr = Array.isArray(deductibles) ? deductibles : [];
     const totalDeductibles = deductiblesArr.reduce((sum: number, d: any) => sum + Number(d.amount || 0), 0);
-
     const grossNum = netNum + vatNum - totalDeductibles;
 
     await commissionsDb.query(
-      `
-      UPDATE generated_invoices
-      SET 
+      `UPDATE generated_invoices SET
         invoice_type = ?,
         currency = ?,
         particular_title = ?,
@@ -255,8 +256,7 @@ export async function PUT(request: NextRequest) {
         gross_amount = ?,
         remarks = ?,
         deductibles = ?
-      WHERE id = ?
-    `,
+      WHERE id = ?`,
       [
         invoice_type || "TAX_INVOICE",
         currency || "AED",
@@ -283,6 +283,16 @@ export async function PUT(request: NextRequest) {
       ]
     );
 
+    await logSiteActivity({
+      user_name: agent_name,
+      action_type: "EDIT_INVOICE",
+      module_name: "INVOICES",
+      description: `Updated invoice ${existing[0].invoice_number} for ${agent_name}`,
+      metadata: { invoice_id: id, invoice_number: existing[0].invoice_number },
+      ip_address: ipAddress,
+      user_agent: userAgent,
+    });
+
     return NextResponse.json({
       success: true,
       message: "Invoice updated successfully! You can now View/Regenerate the canvas.",
@@ -296,6 +306,9 @@ export async function PUT(request: NextRequest) {
 // DELETE: Delete/Cancel an invoice record
 export async function DELETE(request: NextRequest) {
   try {
+    const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("x-real-ip") || "127.0.0.1";
+    const userAgent = request.headers.get("user-agent") || "Unknown Browser";
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -303,7 +316,20 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Invoice ID required" }, { status: 400 });
     }
 
+    const [existing] = await commissionsDb.query<RowDataPacket[]>("SELECT invoice_number, agent_name FROM generated_invoices WHERE id = ?", [id]);
+    const invNum = existing[0]?.invoice_number || `ID #${id}`;
+
     await commissionsDb.query("DELETE FROM generated_invoices WHERE id = ?", [id]);
+
+    await logSiteActivity({
+      action_type: "DELETE_INVOICE",
+      module_name: "INVOICES",
+      description: `Deleted invoice record ${invNum}`,
+      metadata: { invoice_id: id, invoice_number: invNum },
+      ip_address: ipAddress,
+      user_agent: userAgent,
+    });
+
     return NextResponse.json({ success: true, message: "Invoice record removed" });
   } catch (error: any) {
     console.error("DELETE Invoice Error:", error);
