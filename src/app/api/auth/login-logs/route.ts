@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         role_name VARCHAR(100) NULL,
         ip_address VARCHAR(100) NULL,
         user_agent TEXT NULL,
-        status VARCHAR(50) NOT NULL DEFAULT 'SUCCESS',
+        status VARCHAR(50) NOT NULL DEFAULT "SUCCESS",
         failure_reason VARCHAR(255) NULL,
         login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_email (email),
