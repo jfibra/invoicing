@@ -1,362 +1,281 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { initialInvoices } from "@/data/mockInvoices";
-import { Invoice, InvoiceStatus, calculateSubtotal, calculateTax, calculateTotal } from "@/types/invoice";
-import { InvoicePreview } from "@/components/InvoicePreview";
-import { InvoiceForm } from "@/components/InvoiceForm";
-import {
-  Plus,
-  Search,
-  Filter,
-  DollarSign,
-  Clock,
-  CheckCircle2,
-  AlertTriangle,
-  FileText,
-  Eye,
-  Edit,
-  Trash2,
-  TrendingUp,
-  Download,
-  Receipt,
-  Sparkles,
-} from "lucide-react";
-import confetti from "canvas-confetti";
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { Lock, Mail, ArrowRight, Eye, EyeOff, ShieldCheck, Building2, HelpCircle, AlertCircle } from "lucide-react";
 
-export default function Dashboard() {
-  const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("All");
-  
-  // Modals & Active State
-  const [activePreview, setActivePreview] = useState<Invoice | null>(null);
-  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
+export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Analytics Metrics
-  const metrics = useMemo(() => {
-    let totalRevenue = 0;
-    let pendingAmount = 0;
-    let overdueAmount = 0;
-
-    invoices.forEach((inv) => {
-      const subtotal = calculateSubtotal(inv.items);
-      const tax = calculateTax(subtotal, inv.taxRate);
-      const total = calculateTotal(subtotal, tax, inv.discount);
-
-      if (inv.status === "Paid") {
-        totalRevenue += total;
-      } else if (inv.status === "Pending") {
-        pendingAmount += total;
-      } else if (inv.status === "Overdue") {
-        overdueAmount += total;
-      }
-    });
-
-    return {
-      totalRevenue,
-      pendingAmount,
-      overdueAmount,
-      totalCount: invoices.length,
-      paidCount: invoices.filter((i) => i.status === "Paid").length,
-    };
-  }, [invoices]);
-
-  // Filtered List
-  const filteredInvoices = useMemo(() => {
-    return invoices.filter((inv) => {
-      const matchesSearch =
-        inv.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        inv.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        inv.clientEmail.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesStatus = selectedStatus === "All" || inv.status === selectedStatus;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [invoices, searchQuery, selectedStatus]);
-
-  // Actions
-  const handleMarkPaid = (id: string) => {
-    setInvoices((prev) =>
-      prev.map((inv) => (inv.id === id ? { ...inv, status: "Paid" } : inv))
-    );
-    if (activePreview?.id === id) {
-      setActivePreview((prev) => (prev ? { ...prev, status: "Paid" } : null));
+  // Check if user is already logged in
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/auth/login");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated) {
+            router.push("/dashboard");
+          }
+        }
+      } catch (err) {}
     }
+    checkAuth();
+  }, [router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
     try {
-      confetti({
-        particleCount: 80,
-        spread: 60,
-        origin: { y: 0.6 },
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
-    } catch {}
-  };
 
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this invoice?")) {
-      setInvoices((prev) => prev.filter((inv) => inv.id !== id));
-      if (activePreview?.id === id) setActivePreview(null);
-    }
-  };
+      const data = await res.json();
 
-  const handleSaveInvoice = (invoice: Invoice) => {
-    setInvoices((prev) => {
-      const exists = prev.some((i) => i.id === invoice.id);
-      if (exists) {
-        return prev.map((i) => (i.id === invoice.id ? invoice : i));
+      if (!res.ok) {
+        throw new Error(data.error || "Authentication failed");
       }
-      return [invoice, ...prev];
-    });
-    setIsFormOpen(false);
-    setEditingInvoice(null);
+
+      // Successful Login -> Redirect to role-based dashboard
+      router.push("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Invalid credentials. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      {/* Top Header Navigation */}
-      <header className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80 px-4 lg:px-8 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-900/30">
-              <Receipt className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-black tracking-tight text-white flex items-center gap-2">
-                Invoicing
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  Next.js App
-                </span>
-              </h1>
-              <p className="text-xs text-slate-400">Modern Financial Operations & Client Billing</p>
-            </div>
-          </div>
+    <main className="min-h-screen bg-white text-slate-900 flex flex-col justify-between font-sans selection:bg-red-600 selection:text-white relative">
+      {/* Top Clean White Navigation */}
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 px-6 lg:px-12 py-4 flex items-center justify-between shadow-xs">
+        <div className="flex items-center gap-3">
+          <Image
+            src="/fhi.png"
+            alt="Filipino Homes | Leuterio Realty"
+            width={180}
+            height={75}
+            className="object-contain h-9 w-auto"
+            priority
+          />
+          <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-600 border border-red-200 text-xs font-bold">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
+            Invoicing Portal
+          </span>
+        </div>
 
-          <button
-            onClick={() => {
-              setEditingInvoice(null);
-              setIsFormOpen(true);
-            }}
-            className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-900/40 transition-all flex items-center gap-2"
+        <div className="flex items-center gap-4 text-xs">
+          <a
+            href="#"
+            className="text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1.5 font-medium"
           >
-            <Plus className="w-4 h-4" />
-            New Invoice
-          </button>
+            <HelpCircle className="w-4 h-4 text-slate-400" />
+            Help & Support
+          </a>
+          <span className="h-4 w-px bg-slate-200" />
+          <span className="text-slate-500 font-mono">v2.4.0</span>
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 space-y-8">
-        {/* KPI Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-slate-900/60 border border-slate-800/80 p-5 rounded-2xl relative overflow-hidden backdrop-blur-sm">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-medium uppercase tracking-wider">Total Revenue</span>
-              <DollarSign className="w-4 h-4 text-emerald-400" />
-            </div>
-            <div className="text-2xl font-black text-white font-mono">
-              ${metrics.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-            </div>
-            <div className="text-[11px] text-emerald-400 flex items-center gap-1 mt-2">
-              <TrendingUp className="w-3 h-3" />
-              {metrics.paidCount} paid invoices
-            </div>
+      {/* Main Split Layout */}
+      <section className="flex-1 max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 p-6 lg:p-12 items-center z-10">
+        
+        {/* Left Hero Branding Banner */}
+        <div className="lg:col-span-6 space-y-6 lg:pr-6 hidden lg:block">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold">
+            <Building2 className="w-4 h-4 text-red-600" />
+            Official Leuterio Realty Portal
           </div>
 
-          <div className="bg-slate-900/60 border border-slate-800/80 p-5 rounded-2xl relative overflow-hidden backdrop-blur-sm">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-medium uppercase tracking-wider">Pending Revenue</span>
-              <Clock className="w-4 h-4 text-amber-400" />
-            </div>
-            <div className="text-2xl font-black text-white font-mono">
-              ${metrics.pendingAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-            </div>
-            <div className="text-[11px] text-amber-400 flex items-center gap-1 mt-2">
-              Awaiting client payment
-            </div>
-          </div>
+          <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-tight">
+            Streamlined <br />
+            <span className="text-red-600">
+              Commission Invoicing
+            </span> <br />
+            & Agent Management
+          </h1>
 
-          <div className="bg-slate-900/60 border border-slate-800/80 p-5 rounded-2xl relative overflow-hidden backdrop-blur-sm">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-medium uppercase tracking-wider">Overdue Balance</span>
-              <AlertTriangle className="w-4 h-4 text-rose-400" />
-            </div>
-            <div className="text-2xl font-black text-white font-mono">
-              ${metrics.overdueAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-            </div>
-            <div className="text-[11px] text-rose-400 flex items-center gap-1 mt-2">
-              Requires follow-up
-            </div>
-          </div>
+          <p className="text-slate-600 text-base leading-relaxed max-w-lg">
+            Manage your billing records, track payouts, verify subteams, and generate automated PDF invoices with enterprise-grade security.
+          </p>
 
-          <div className="bg-slate-900/60 border border-slate-800/80 p-5 rounded-2xl relative overflow-hidden backdrop-blur-sm">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-medium uppercase tracking-wider">Total Invoices</span>
-              <FileText className="w-4 h-4 text-indigo-400" />
+          <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-200 max-w-md">
+            <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl shadow-xs">
+              <span className="text-2xl font-black text-slate-900 font-mono">100%</span>
+              <p className="text-xs text-slate-600 mt-1 font-medium">Verified Ledger Records</p>
             </div>
-            <div className="text-2xl font-black text-white font-mono">{metrics.totalCount}</div>
-            <div className="text-[11px] text-slate-400 flex items-center gap-1 mt-2">
-              Active ledger entries
+            <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl shadow-xs">
+              <span className="text-2xl font-black text-red-600 font-mono">Real-time</span>
+              <p className="text-xs text-slate-600 mt-1 font-medium">Team & Payout Tracking</p>
             </div>
           </div>
         </div>
 
-        {/* Filter and Search Bar */}
-        <div className="bg-slate-900/40 border border-slate-800/80 p-4 rounded-2xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search by invoice number, client name, or email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
-            />
-          </div>
+        {/* Right Modern Clean White Card */}
+        <div className="lg:col-span-6 w-full max-w-xl mx-auto">
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 sm:p-10 shadow-xl relative overflow-hidden">
+            {/* Top Red Accent Line */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-red-600" />
 
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
-            <Filter className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
-            {["All", "Paid", "Pending", "Overdue", "Draft"].map((status) => (
+            {/* Mobile Branding Logo */}
+            <div className="mb-6 lg:hidden flex justify-center">
+              <Image
+                src="/leuteriorealty.svg"
+                alt="Leuterio Realty"
+                width={180}
+                height={80}
+                className="object-contain"
+                priority
+              />
+            </div>
+
+            {/* Form Header */}
+            <div className="space-y-2 mb-6">
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                Sign In to Account
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500">
+                Please enter your credentials to log in to your account.
+              </p>
+            </div>
+
+            {/* Error Message Display */}
+            {error && (
+              <div className="mb-6 p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Login Inputs Form */}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Email / Username Field */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Email or Username <span className="text-red-600">*</span>
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@leuteriorealty.com"
+                    className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-xl pl-11 pr-4 py-3.5 focus:outline-none focus:border-red-600 focus:bg-white focus:ring-2 focus:ring-red-600/10 transition-all font-medium placeholder-slate-400"
+                  />
+                </div>
+              </div>
+
+              {/* Password Field */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Password <span className="text-red-600">*</span>
+                  </label>
+                  <a
+                    href="#"
+                    className="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline transition-colors"
+                  >
+                    Forgot Password?
+                  </a>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-xl pl-11 pr-11 py-3.5 focus:outline-none focus:border-red-600 focus:bg-white focus:ring-2 focus:ring-red-600/10 transition-all font-medium placeholder-slate-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Remember Me Checkbox */}
+              <div className="flex items-center justify-between pt-1">
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600 hover:text-slate-900 select-none">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 bg-slate-50 text-red-600 focus:ring-red-600/20 cursor-pointer"
+                  />
+                  <span>Keep me signed in on this device</span>
+                </label>
+              </div>
+
+              {/* Submit Button */}
               <button
-                key={status}
-                onClick={() => setSelectedStatus(status)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
-                  selectedStatus === status
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-900/40"
-                    : "bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800"
-                }`}
+                type="submit"
+                disabled={loading}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-base py-3.5 rounded-xl shadow-md transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 mt-2"
               >
-                {status}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Invoices Table List */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl backdrop-blur-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-950 text-slate-400 font-mono uppercase border-b border-slate-800">
-                <tr>
-                  <th className="py-4 px-6">Invoice</th>
-                  <th className="py-4 px-6">Client</th>
-                  <th className="py-4 px-6">Due Date</th>
-                  <th className="py-4 px-6 text-right">Amount</th>
-                  <th className="py-4 px-6 text-center">Status</th>
-                  <th className="py-4 px-6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {filteredInvoices.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-500">
-                      No invoices found matching your criteria.
-                    </td>
-                  </tr>
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Authenticating...
+                  </span>
                 ) : (
-                  filteredInvoices.map((inv) => {
-                    const subtotal = calculateSubtotal(inv.items);
-                    const tax = calculateTax(subtotal, inv.taxRate);
-                    const total = calculateTotal(subtotal, tax, inv.discount);
-
-                    return (
-                      <tr key={inv.id} className="hover:bg-slate-800/30 transition-colors group">
-                        <td className="py-4 px-6 font-mono font-bold text-indigo-400">{inv.invoiceNumber}</td>
-                        <td className="py-4 px-6">
-                          <div className="font-semibold text-slate-200">{inv.clientName}</div>
-                          <div className="text-[11px] text-slate-500">{inv.clientEmail}</div>
-                        </td>
-                        <td className="py-4 px-6 text-slate-400 font-mono">{inv.dueDate}</td>
-                        <td className="py-4 px-6 text-right font-mono font-bold text-white">
-                          ${total.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="py-4 px-6 text-center">
-                          {inv.status === "Paid" && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                              <CheckCircle2 className="w-3 h-3" /> Paid
-                            </span>
-                          )}
-                          {inv.status === "Pending" && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                              <Clock className="w-3 h-3" /> Pending
-                            </span>
-                          )}
-                          {inv.status === "Overdue" && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                              <AlertTriangle className="w-3 h-3" /> Overdue
-                            </span>
-                          )}
-                          {inv.status === "Draft" && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/20">
-                              <FileText className="w-3 h-3" /> Draft
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-4 px-6 text-right space-x-1">
-                          <button
-                            onClick={() => setActivePreview(inv)}
-                            title="View Invoice"
-                            className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditingInvoice(inv);
-                              setIsFormOpen(true);
-                            }}
-                            title="Edit Invoice"
-                            className="p-1.5 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 rounded-lg transition-colors"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(inv.id)}
-                            title="Delete Invoice"
-                            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
+                  <>
+                    <span>Sign In to Dashboard</span>
+                    <ArrowRight className="w-5 h-5" />
+                  </>
                 )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </main>
+              </button>
+            </form>
 
-      {/* Invoice View Modal */}
-      {activePreview && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="max-w-3xl w-full my-8">
-            <InvoicePreview
-              invoice={activePreview}
-              onClose={() => setActivePreview(null)}
-              onMarkPaid={handleMarkPaid}
-            />
+            {/* Bottom Security Note */}
+            <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-center gap-2 text-xs text-slate-500">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <span>Protected by 256-bit encrypted authentication</span>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Invoice Form Modal */}
-      {isFormOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="max-w-3xl w-full my-8">
-            <InvoiceForm
-              initialData={editingInvoice}
-              onSave={handleSaveInvoice}
-              onClose={() => {
-                setIsFormOpen(false);
-                setEditingInvoice(null);
-              }}
-            />
-          </div>
+      </section>
+
+      {/* Clean White Footer */}
+      <footer className="w-full bg-white border-t border-slate-200 px-6 lg:px-12 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+        <div>
+          © {new Date().getFullYear()} Leuterio Realty & Brokerage. All rights reserved.
         </div>
-      )}
-    </div>
+        <div className="flex items-center gap-6 font-medium">
+          <a href="#" className="hover:text-slate-900 transition-colors">Privacy Policy</a>
+          <a href="#" className="hover:text-slate-900 transition-colors">Terms of Service</a>
+          <a href="https://leuteriorealty.com" target="_blank" rel="noreferrer" className="text-red-600 hover:text-red-700 font-mono font-semibold">
+            leuteriorealty.com
+          </a>
+        </div>
+      </footer>
+    </main>
   );
 }
