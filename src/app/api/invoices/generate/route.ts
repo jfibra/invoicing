@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { commissionsDb } from "@/lib/db";
 import { logSiteActivity } from "@/lib/activityLogger";
+import { ensureInvoiceTypesTable } from "@/lib/invoiceTypes";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 export async function POST(request: NextRequest) {
   try {
+    await ensureInvoiceTypesTable();
     const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("x-real-ip") || "127.0.0.1";
     const userAgent = request.headers.get("user-agent") || "Unknown Browser";
 
@@ -35,6 +37,8 @@ export async function POST(request: NextRequest) {
       include_vat,
       deductibles,
       remarks,
+      issued_date,
+      issuedDate: requestIssuedDate,
     } = body;
 
     let projValNum = project_value ? Number(project_value) : null;
@@ -62,7 +66,9 @@ export async function POST(request: NextRequest) {
 
     const grossNum = netNum + vatNum - totalDeductibles;
 
-    const typePrefix = invoice_type === "TAX_INVOICE" ? "TAX" : invoice_type === "AGENT_PAYOUT" ? "PAY" : invoice_type === "PARTIAL_TRANCHE" ? "TRN" : "PRF";
+    const typePrefix = invoice_type
+      ? (invoice_type.replace(/[^A-Z0-9]/gi, "").substring(0, 3).toUpperCase())
+      : "INV";
     const yearMonth = new Date().toISOString().slice(0, 7).replace("-", "");
     const randomSeq = Math.floor(1000 + Math.random() * 9000);
     const invoiceNumber = `LR-DXB-${typePrefix}-${yearMonth}-${randomSeq}`;
@@ -105,7 +111,9 @@ export async function POST(request: NextRequest) {
       address,
     };
 
-    const issuedDate = new Date().toISOString().slice(0, 10);
+    const issuedDate = (issued_date || requestIssuedDate)
+      ? String(issued_date || requestIssuedDate).slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
 
     await commissionsDb.query(`
       CREATE TABLE IF NOT EXISTS generated_invoices (

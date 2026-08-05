@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { commissionsDb } from "@/lib/db";
 import { logSiteActivity } from "@/lib/activityLogger";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
+import { ensureInvoiceFilesTable } from "@/lib/invoiceAttachments";
 
 // Helper: Ensure generated_invoices table exists
 async function ensureInvoicesTable() {
+  await ensureInvoiceFilesTable();
   await commissionsDb.query(`
     CREATE TABLE IF NOT EXISTS generated_invoices (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -211,6 +213,8 @@ export async function PUT(request: NextRequest) {
       include_vat,
       deductibles,
       remarks,
+      issued_date,
+      issuedDate: requestIssuedDate,
     } = body;
 
     let projValNum = project_value ? Number(project_value) : null;
@@ -233,6 +237,12 @@ export async function PUT(request: NextRequest) {
     const totalDeductibles = deductiblesArr.reduce((sum: number, d: any) => sum + Number(d.amount || 0), 0);
     const grossNum = netNum + vatNum - totalDeductibles;
 
+    const updatedIssuedDate = (issued_date || requestIssuedDate)
+      ? String(issued_date || requestIssuedDate).slice(0, 10)
+      : existing[0]?.issued_date
+      ? new Date(existing[0].issued_date).toISOString().slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
+
     await commissionsDb.query(
       `UPDATE generated_invoices SET
         invoice_type = ?,
@@ -254,6 +264,7 @@ export async function PUT(request: NextRequest) {
         vat_rate = ?,
         vat_amount = ?,
         gross_amount = ?,
+        issued_date = ?,
         remarks = ?,
         deductibles = ?
       WHERE id = ?`,
@@ -277,6 +288,7 @@ export async function PUT(request: NextRequest) {
         vatRateNum,
         vatNum,
         grossNum,
+        updatedIssuedDate,
         remarks || null,
         JSON.stringify(deductiblesArr),
         id,

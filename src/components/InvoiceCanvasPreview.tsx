@@ -12,7 +12,10 @@ export interface DeductibleItem {
 
 export interface InvoiceCanvasData {
   invoiceNumber: string;
-  invoiceType: "TAX_INVOICE" | "AGENT_PAYOUT" | "PARTIAL_TRANCHE" | "PROFORMA";
+  invoiceType: string;
+  invoiceTitle?: string;
+  invoiceTypeDescription?: string;
+  invoiceTypeConfig?: { code: string; label: string; invoice_title: string; description: string };
   templateStyle?: TemplateStyle;
   issuedDate: string;
   dueDate?: string;
@@ -61,6 +64,27 @@ export default function InvoiceCanvasPreview({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [faLoaded, setFaLoaded] = useState(false);
   const [loadedLogo, setLoadedLogo] = useState<HTMLImageElement | null>(null);
+  const [dbTypeConfig, setDbTypeConfig] = useState<{ code: string; label: string; invoice_title: string; description: string } | null>(null);
+
+  // Fetch dynamic invoice type settings from database if not explicitly provided in props
+  useEffect(() => {
+    async function fetchTypeConfig() {
+      if (data.invoiceTypeConfig || (data.invoiceTitle && data.invoiceTypeDescription)) return;
+      try {
+        const res = await fetch("/api/settings/invoice-types");
+        const resData = await res.json();
+        if (res.ok && resData.invoiceTypes) {
+          const match = resData.invoiceTypes.find((t: any) => t.code === data.invoiceType);
+          if (match) {
+            setDbTypeConfig(match);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch invoice type config in canvas preview:", e);
+      }
+    }
+    fetchTypeConfig();
+  }, [data.invoiceType, data.invoiceTitle, data.invoiceTypeDescription, data.invoiceTypeConfig]);
 
   const activeTemplate = data.templateStyle || "modern_slate";
   const curr = data.currency || "AED";
@@ -145,23 +169,34 @@ export default function InvoiceCanvasPreview({
     }
     ctx.globalAlpha = 1.0;
 
+    const matchedTypeConfig = data.invoiceTypeConfig || dbTypeConfig;
+
     const titleText =
-      data.invoiceType === "TAX_INVOICE"
+      data.invoiceTitle ||
+      matchedTypeConfig?.invoice_title ||
+      (data.invoiceType === "TAX_INVOICE"
         ? "TAX INVOICE"
         : data.invoiceType === "AGENT_PAYOUT"
         ? "AGENT PAYOUT STATEMENT"
         : data.invoiceType === "PARTIAL_TRANCHE"
         ? "PARTIAL TRANCHE INVOICE"
-        : "PROFORMA INVOICE";
+        : data.invoiceType === "PROFORMA"
+        ? "PROFORMA INVOICE"
+        : (data.invoiceType || "INVOICE").replace(/_/g, " ").toUpperCase());
 
     const particularTitle =
-      data.invoiceType === "TAX_INVOICE"
+      data.particularTitle ||
+      data.invoiceTypeDescription ||
+      matchedTypeConfig?.description ||
+      (data.invoiceType === "TAX_INVOICE"
         ? "Real Estate Sales Commission Service Fee"
         : data.invoiceType === "AGENT_PAYOUT"
         ? "Brokerage Agent Commission Split Payout"
         : data.invoiceType === "PARTIAL_TRANCHE"
         ? "Commission Tranche Milestone Release"
-        : "Proforma Estimated Sales Commission Fee";
+        : data.invoiceType === "PROFORMA"
+        ? "Proforma Estimated Sales Commission Fee"
+        : "Commission Service Fee");
 
     // Helper: Render Font Awesome Icons on Canvas
     const drawFAIcon = (
@@ -646,7 +681,8 @@ export default function InvoiceCanvasPreview({
     ctx.fillText("Official Computer Generated Real Estate Commission Invoice", 84, footerY + 28);
     ctx.fillStyle = "#94A3B8";
     ctx.font = "11px sans-serif";
-    ctx.fillText("• Leuterio Realty & Brokerage LLC • Dubai, UAE", 84, footerY + 46);
+    const footerCompany = data.companyName || "FHI Global";
+    ctx.fillText(`• ${footerCompany} • Dubai, UAE`, 84, footerY + 46);
 
     ctx.textAlign = "right";
     ctx.fillStyle = "#FFFFFF";

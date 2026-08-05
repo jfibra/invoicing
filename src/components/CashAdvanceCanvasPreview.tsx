@@ -55,7 +55,7 @@ export default function CashAdvanceCanvasPreview({
   const [loadedLogo, setLoadedLogo] = useState<HTMLImageElement | null>(null);
 
   const curr = data.currency || "AED";
-  const companyName = data.companyName || "Leuterio Realty & Brokerage LLC";
+  const companyName = data.companyName || "FHI Global";
 
   // Preload & Cache Logo Image for Canvas
   useEffect(() => {

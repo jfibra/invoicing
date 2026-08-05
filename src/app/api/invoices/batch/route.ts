@@ -150,6 +150,11 @@ export async function POST(request: NextRequest) {
       const randomSeq = Math.floor(1000 + Math.random() * 9000);
       const invoiceNumber = `LR-DXB-${typePrefix}-${yearMonth}-${randomSeq}`;
 
+      const rawRowDate = item.issued_date || item.issueddate || item.invoice_date || item.date;
+      const itemIssuedDate = (rawRowDate && String(rawRowDate).trim().length >= 10)
+        ? String(rawRowDate).trim().slice(0, 10)
+        : issuedDate;
+
       try {
         const [result] = await commissionsDb.query<ResultSetHeader>(`
           INSERT INTO generated_invoices 
@@ -181,7 +186,7 @@ export async function POST(request: NextRequest) {
           vatNum,
           grossNum,
           item.currency || "AED",
-          issuedDate,
+          itemIssuedDate,
           item.remarks || null,
           JSON.stringify(deductiblesArr),
           JSON.stringify(defaultProfileSnapshot),

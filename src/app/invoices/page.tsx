@@ -46,6 +46,10 @@ import {
   FileSpreadsheet,
   FileUp,
   AlertTriangle,
+  Calendar,
+  Paperclip,
+  FileText as FileIcon,
+  ExternalLink,
 } from "lucide-react";
 
 interface InvoicingMember {
@@ -62,7 +66,17 @@ interface InvoicingMember {
   subteam_name: string;
 }
 
-type InvoiceType = "TAX_INVOICE" | "AGENT_PAYOUT" | "PARTIAL_TRANCHE" | "PROFORMA";
+type InvoiceType = string;
+
+interface InvoiceTypeOption {
+  id: number;
+  code: string;
+  label: string;
+  invoice_title: string;
+  description: string;
+  status: string;
+  sort_order: number;
+}
 
 export default function CommissionInvoicesPage() {
   return (
@@ -203,6 +217,7 @@ function CommissionInvoicesContent() {
   const [selectedTemplateStyle, setSelectedTemplateStyle] = useState<TemplateStyle>("modern_slate");
 
   // Issuance Form Fields
+  const [issuedDate, setIssuedDate] = useState(new Date().toISOString().slice(0, 10));
   const [currency, setCurrency] = useState<"AED" | "PHP">("AED");
   const [developerName, setDeveloperName] = useState("");
   const [projectName, setProjectName] = useState("");
@@ -230,6 +245,52 @@ function CommissionInvoicesContent() {
   // Admin Profile Settings State
   const [adminProfile, setAdminProfile] = useState<any>(null);
 
+  // Dynamic Database Invoice Types State
+  const [dbInvoiceTypes, setDbInvoiceTypes] = useState<InvoiceTypeOption[]>([]);
+
+  // SALES Attachment Categories State
+  const [salesFileCategories, setSalesFileCategories] = useState<any[]>([]);
+
+  // Issue Invoice Pending Attachments State
+  const [pendingAttachments, setPendingAttachments] = useState<
+    Array<{ id: string; file: File; categoryId: number; categoryCode: string; categoryName: string }>
+  >([]);
+  const [pendingCatId, setPendingCatId] = useState("");
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+
+  // Edit Invoice Attachments State
+  const [editAttachments, setEditAttachments] = useState<any[]>([]);
+  const [editSelectedFileCatId, setEditSelectedFileCatId] = useState("");
+  const [editSelectedFile, setEditSelectedFile] = useState<File | null>(null);
+  const [uploadingEditFile, setUploadingEditFile] = useState(false);
+
+  useEffect(() => {
+    async function loadDbInvoiceTypes() {
+      try {
+        const res = await fetch("/api/settings/invoice-types");
+        const data = await res.json();
+        if (res.ok && data.invoiceTypes) {
+          setDbInvoiceTypes(data.invoiceTypes);
+        }
+      } catch (err) {
+        console.error("Failed to fetch database invoice types:", err);
+      }
+    }
+    async function loadSalesFileCategories() {
+      try {
+        const res = await fetch("/api/invoice-file-categories?type=SALES");
+        const data = await res.json();
+        if (res.ok && data.categories) {
+          setSalesFileCategories(data.categories);
+        }
+      } catch (err) {
+        console.error("Failed to fetch sales file categories:", err);
+      }
+    }
+    loadDbInvoiceTypes();
+    loadSalesFileCategories();
+  }, []);
+
   // -------------------------------------------------------------
   // Invoice History & Tracker State
   // -------------------------------------------------------------
@@ -251,6 +312,7 @@ function CommissionInvoicesContent() {
   // Edit Invoice Modal State
   // -------------------------------------------------------------
   const [editingInvoice, setEditingInvoice] = useState<any | null>(null);
+  const [editIssuedDate, setEditIssuedDate] = useState("");
   const [editInvoiceType, setEditInvoiceType] = useState<InvoiceType>("TAX_INVOICE");
   const [editCurrency, setEditCurrency] = useState<"AED" | "PHP">("AED");
   const [editAgentName, setEditAgentName] = useState("");
@@ -442,6 +504,7 @@ function CommissionInvoicesContent() {
 
   const handleOpenIssueModal = (m: InvoicingMember) => {
     setSelectedMemberForInvoice(m);
+    setIssuedDate(new Date().toISOString().slice(0, 10));
     setCurrency("AED");
     setDeveloperName("");
     setProjectName("");
@@ -455,6 +518,9 @@ function CommissionInvoicesContent() {
     setNetAmount("");
     setIncludeVat(true);
     setDeductibles([]);
+    setPendingAttachments([]);
+    setPendingCatId("");
+    setPendingFile(null);
     setRemarks("");
     setParticularTitle("");
     setCommissionStatus("NONE");
@@ -521,6 +587,7 @@ function CommissionInvoicesContent() {
         include_vat: includeVat,
         deductibles: formattedDeductibles,
         remarks,
+        issued_date: issuedDate,
       };
 
       const res = await fetch("/api/invoices/generate", {
@@ -535,15 +602,18 @@ function CommissionInvoicesContent() {
       const prof = data.profile_snapshot?.profile || adminProfile;
       const addr = data.profile_snapshot?.address || adminProfile?.address;
       const logoUrl = adminProfile?.default_logo_url || prof?.default_logo_url;
+      const typeConfig = dbInvoiceTypes.find((t) => t.code === selectedInvoiceType);
 
       const canvasData: InvoiceCanvasData = {
         invoiceNumber: data.invoice_number,
         invoiceType: selectedInvoiceType,
+        invoiceTitle: typeConfig?.invoice_title,
+        invoiceTypeConfig: typeConfig,
         templateStyle: selectedTemplateStyle,
         currency,
         particularTitle: particularTitle || undefined,
         commissionStatus: activeStatusText !== "NONE" ? activeStatusText : undefined,
-        issuedDate: new Date().toISOString().slice(0, 10),
+        issuedDate: issuedDate || new Date().toISOString().slice(0, 10),
         agentName: selectedMemberForInvoice.completename,
         agentCode: selectedMemberForInvoice.member_code,
         agentEmail: selectedMemberForInvoice.email || undefined,
@@ -563,7 +633,7 @@ function CommissionInvoicesContent() {
         vatAmount: vat,
         grossAmount: gross,
         deductibles: formattedDeductibles,
-        companyName: prof?.company_name || "Leuterio Realty & Brokerage LLC",
+        companyName: prof?.company_name || "FHI Global",
         trnNumber: prof?.trn_number || undefined,
         logoUrl: logoUrl || undefined,
         addressLine1: addr ? [addr.building_name, addr.street_address].filter(Boolean).join(", ") : "Opus Tower by Omniyat, Marasi Drive, Business Bay",
@@ -574,6 +644,28 @@ function CommissionInvoicesContent() {
         swiftCode: prof?.swift_code || "EBILAEAD",
         remarks,
       };
+
+      // Upload pending file attachments if any
+      if (pendingAttachments.length > 0 && data.invoice_id) {
+        for (const item of pendingAttachments) {
+          try {
+            const form = new FormData();
+            form.append("file", item.file);
+            form.append("invoice_id", String(data.invoice_id));
+            form.append("invoice_number", data.invoice_number);
+            form.append("category_id", String(item.categoryId));
+            form.append("category_code", item.categoryCode);
+            form.append("category_name", item.categoryName);
+            await fetch("/api/invoices/attachments", {
+              method: "POST",
+              body: form,
+            });
+          } catch (attErr) {
+            console.error("Failed to upload pending attachment:", attErr);
+          }
+        }
+      }
+      setPendingAttachments([]);
 
       setActiveCanvasInvoice(canvasData);
       setSuccessMsg(`Invoice #${data.invoice_number} saved to database & rendered on Canvas!`);
@@ -604,6 +696,67 @@ function CommissionInvoicesContent() {
     }
   };
 
+  const fetchEditAttachments = async (invoiceId: number) => {
+    try {
+      const res = await fetch(`/api/invoices/attachments?invoice_id=${invoiceId}`);
+      const data = await res.json();
+      if (res.ok && data.attachments) {
+        setEditAttachments(data.attachments);
+      }
+    } catch (err) {
+      console.error("Failed to fetch edit attachments:", err);
+    }
+  };
+
+  const handleUploadEditAttachment = async () => {
+    if (!editingInvoice || !editSelectedFile || !editSelectedFileCatId) return;
+    const cat = salesFileCategories.find((c) => String(c.id) === String(editSelectedFileCatId));
+    if (!cat) return;
+
+    setUploadingEditFile(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", editSelectedFile);
+      formData.append("invoice_id", String(editingInvoice.id));
+      formData.append("invoice_number", editingInvoice.invoice_number);
+      formData.append("category_id", String(cat.id));
+      formData.append("category_code", cat.code || "GENERAL");
+      formData.append("category_name", cat.name);
+
+      const res = await fetch("/api/invoices/attachments", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to upload attachment");
+
+      setEditSelectedFile(null);
+      setEditSelectedFileCatId("");
+      const fileInput = document.getElementById("edit-attachment-file-input") as HTMLInputElement;
+      if (fileInput) fileInput.value = "";
+      fetchEditAttachments(editingInvoice.id);
+    } catch (err: any) {
+      alert(`Upload Error: ${err.message}`);
+    } finally {
+      setUploadingEditFile(false);
+    }
+  };
+
+  const handleDeleteEditAttachment = async (attachmentId: number) => {
+    if (!confirm("Are you sure you want to delete this attachment from S3 and database?")) return;
+    try {
+      const res = await fetch(`/api/invoices/attachments?id=${attachmentId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        fetchEditAttachments(editingInvoice.id);
+      }
+    } catch (err) {
+      alert("Failed to delete attachment.");
+    }
+  };
+
   // Open Edit Invoice Modal
   const handleOpenEditModal = (inv: any) => {
     if (inv.is_locked) {
@@ -619,6 +772,17 @@ function CommissionInvoicesContent() {
     }
 
     setEditingInvoice(inv);
+    setEditAttachments([]);
+    setEditSelectedFileCatId("");
+    setEditSelectedFile(null);
+    if (inv.id) {
+      fetchEditAttachments(inv.id);
+    }
+    setEditIssuedDate(
+      inv.issued_date
+        ? (typeof inv.issued_date === "string" ? inv.issued_date.slice(0, 10) : new Date(inv.issued_date).toISOString().slice(0, 10))
+        : new Date().toISOString().slice(0, 10)
+    );
     setEditInvoiceType(inv.invoice_type || "TAX_INVOICE");
     setEditCurrency(inv.currency === "PHP" ? "PHP" : "AED");
     setEditAgentName(inv.agent_name || "");
@@ -698,6 +862,7 @@ function CommissionInvoicesContent() {
         include_vat: editIncludeVat,
         deductibles: formattedDeductibles,
         remarks: editRemarks,
+        issued_date: editIssuedDate,
       };
 
       const res = await fetch("/api/invoices", {
@@ -743,14 +908,21 @@ function CommissionInvoicesContent() {
     const vat = Number(inv.vat_amount);
     const gross = Number(inv.gross_amount);
 
+    const invType = inv.invoice_type || "TAX_INVOICE";
+    const typeConfig = dbInvoiceTypes.find((t) => t.code === invType);
+
     const canvasData: InvoiceCanvasData = {
       invoiceNumber: inv.invoice_number,
-      invoiceType: inv.invoice_type || "TAX_INVOICE",
+      invoiceType: invType,
+      invoiceTitle: typeConfig?.invoice_title,
+      invoiceTypeConfig: typeConfig,
       templateStyle: inv.template_style || "modern_slate",
       currency: inv.currency || "AED",
       particularTitle: inv.particular_title || undefined,
       commissionStatus: inv.commission_status && inv.commission_status !== "NONE" ? inv.commission_status : undefined,
-      issuedDate: inv.issued_date ? new Date(inv.issued_date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+      issuedDate: inv.issued_date
+        ? (typeof inv.issued_date === "string" ? inv.issued_date.slice(0, 10) : new Date(inv.issued_date).toISOString().slice(0, 10))
+        : new Date().toISOString().slice(0, 10),
       agentName: inv.agent_name,
       agentCode: inv.agent_code || undefined,
       agentEmail: inv.agent_email || undefined,
@@ -770,7 +942,7 @@ function CommissionInvoicesContent() {
       vatAmount: vat,
       grossAmount: gross,
       deductibles: parsedDeductibles,
-      companyName: prof?.company_name || "Leuterio Realty & Brokerage LLC",
+      companyName: prof?.company_name || "FHI Global",
       trnNumber: prof?.trn_number || undefined,
       logoUrl: logoUrl || undefined,
       addressLine1: addr ? [addr.building_name, addr.street_address].filter(Boolean).join(", ") : "Opus Tower by Omniyat, Marasi Drive, Business Bay",
@@ -806,6 +978,9 @@ function CommissionInvoicesContent() {
   };
 
   const getInvoiceTypeDefaultTitle = (type: InvoiceType) => {
+    const match = dbInvoiceTypes.find((t) => t.code === type);
+    if (match?.description) return match.description;
+
     switch (type) {
       case "TAX_INVOICE":
         return "Real Estate Sales Commission Service Fee";
@@ -1189,10 +1364,20 @@ function CommissionInvoicesContent() {
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-medium focus:outline-none focus:border-red-600 cursor-pointer"
                   >
                     <option value="">All Invoice Types</option>
-                    <option value="TAX_INVOICE">Tax Invoice</option>
-                    <option value="AGENT_PAYOUT">Agent Payout Statement</option>
-                    <option value="PARTIAL_TRANCHE">Partial Tranche</option>
-                    <option value="PROFORMA">Proforma Invoice</option>
+                    {dbInvoiceTypes.length > 0 ? (
+                      dbInvoiceTypes.map((t) => (
+                        <option key={t.id} value={t.code}>
+                          {t.label}
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="TAX_INVOICE">Tax Invoice</option>
+                        <option value="AGENT_PAYOUT">Agent Payout Statement</option>
+                        <option value="PARTIAL_TRANCHE">Partial Tranche</option>
+                        <option value="PROFORMA">Proforma Invoice</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
@@ -1529,6 +1714,7 @@ function CommissionInvoicesContent() {
                         <th className="py-3 px-4">Agent Name</th>
                         <th className="py-3 px-4">Agent Code</th>
                         <th className="py-3 px-4">Invoice Type</th>
+                        <th className="py-3 px-4">Invoice Date</th>
                         <th className="py-3 px-4">Project & Unit</th>
                         <th className="py-3 px-4 text-right">Net Amount</th>
                         <th className="py-3 px-4 text-center">VAT</th>
@@ -1539,12 +1725,14 @@ function CommissionInvoicesContent() {
                     <tbody className="divide-y divide-slate-100 text-xs">
                       {csvParsedRows.map((r, idx) => {
                         const isValid = Boolean(r.agent_name && r.agent_name.trim());
+                        const rowDate = r.issued_date || r.issueddate || r.invoice_date || r.date || "Today";
                         return (
                           <tr key={idx} className="hover:bg-slate-50/80">
                             <td className="py-3 px-4 font-mono text-slate-400">{idx + 1}</td>
                             <td className="py-3 px-4 font-bold text-slate-900">{r.agent_name || "MISSING"}</td>
                             <td className="py-3 px-4 font-mono text-slate-600">{r.agent_code || "-"}</td>
                             <td className="py-3 px-4 font-semibold text-slate-700">{r.invoice_type || "TAX_INVOICE"}</td>
+                            <td className="py-3 px-4 font-mono text-slate-600">{rowDate}</td>
                             <td className="py-3 px-4 text-slate-700">
                               <div>{r.project_name || "-"}</div>
                               {r.unit_number && <span className="text-[10px] text-slate-400 font-mono">{r.unit_number}</span>}
@@ -1668,75 +1856,122 @@ function CommissionInvoicesContent() {
                 1. Select Invoice Type
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSelectedInvoiceType("TAX_INVOICE")}
-                  className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer ${
-                    selectedInvoiceType === "TAX_INVOICE"
-                      ? "bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-600/30"
-                      : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
-                  }`}
-                >
-                  <Receipt className="w-5 h-5" />
-                  <div>
-                    <span className="font-black text-xs block">TAX INVOICE</span>
-                    <span className="text-[10px] opacity-80 block">Standard 5% VAT</span>
-                  </div>
-                </button>
+                {dbInvoiceTypes.length > 0 ? (
+                  dbInvoiceTypes
+                    .filter((t) => t.status === "active")
+                    .map((t) => {
+                      const isSelected = selectedInvoiceType === t.code;
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedInvoiceType(t.code);
+                            if (!particularTitle) setParticularTitle(t.description || "");
+                          }}
+                          className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer ${
+                            isSelected
+                              ? "bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-600/30"
+                              : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
+                          }`}
+                        >
+                          <Receipt className="w-5 h-5" />
+                          <div>
+                            <span className="font-black text-xs block uppercase">{t.label}</span>
+                            <span className="text-[10px] opacity-80 block truncate">
+                              {t.invoice_title}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedInvoiceType("TAX_INVOICE")}
+                      className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer ${
+                        selectedInvoiceType === "TAX_INVOICE"
+                          ? "bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-600/30"
+                          : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
+                      }`}
+                    >
+                      <Receipt className="w-5 h-5" />
+                      <div>
+                        <span className="font-black text-xs block">TAX INVOICE</span>
+                        <span className="text-[10px] opacity-80 block">Standard 5% VAT</span>
+                      </div>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => setSelectedInvoiceType("AGENT_PAYOUT")}
-                  className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer ${
-                    selectedInvoiceType === "AGENT_PAYOUT"
-                      ? "bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-600/30"
-                      : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
-                  }`}
-                >
-                  <CreditCard className="w-5 h-5" />
-                  <div>
-                    <span className="font-black text-xs block">AGENT PAYOUT</span>
-                    <span className="text-[10px] opacity-80 block">Internal Split</span>
-                  </div>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedInvoiceType("AGENT_PAYOUT")}
+                      className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer ${
+                        selectedInvoiceType === "AGENT_PAYOUT"
+                          ? "bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-600/30"
+                          : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
+                      }`}
+                    >
+                      <CreditCard className="w-5 h-5" />
+                      <div>
+                        <span className="font-black text-xs block">AGENT PAYOUT</span>
+                        <span className="text-[10px] opacity-80 block">Internal Split</span>
+                      </div>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => setSelectedInvoiceType("PARTIAL_TRANCHE")}
-                  className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer ${
-                    selectedInvoiceType === "PARTIAL_TRANCHE"
-                      ? "bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-600/30"
-                      : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
-                  }`}
-                >
-                  <Layers className="w-5 h-5" />
-                  <div>
-                    <span className="font-black text-xs block">TRANCHE</span>
-                    <span className="text-[10px] opacity-80 block">Milestone Release</span>
-                  </div>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedInvoiceType("PARTIAL_TRANCHE")}
+                      className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer ${
+                        selectedInvoiceType === "PARTIAL_TRANCHE"
+                          ? "bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-600/30"
+                          : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
+                      }`}
+                    >
+                      <Layers className="w-5 h-5" />
+                      <div>
+                        <span className="font-black text-xs block">TRANCHE</span>
+                        <span className="text-[10px] opacity-80 block">Milestone Release</span>
+                      </div>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => setSelectedInvoiceType("PROFORMA")}
-                  className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer ${
-                    selectedInvoiceType === "PROFORMA"
-                      ? "bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-600/30"
-                      : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
-                  }`}
-                >
-                  <Building2 className="w-5 h-5" />
-                  <div>
-                    <span className="font-black text-xs block">PROFORMA</span>
-                    <span className="text-[10px] opacity-80 block">Pre-Billing Draft</span>
-                  </div>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedInvoiceType("PROFORMA")}
+                      className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer ${
+                        selectedInvoiceType === "PROFORMA"
+                          ? "bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-600/30"
+                          : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
+                      }`}
+                    >
+                      <Building2 className="w-5 h-5" />
+                      <div>
+                        <span className="font-black text-xs block">PROFORMA</span>
+                        <span className="text-[10px] opacity-80 block">Pre-Billing Draft</span>
+                      </div>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
             {/* FORM INPUTS */}
             <form onSubmit={handleGenerateInvoiceSubmit} className="space-y-5 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="block font-bold uppercase text-slate-700 flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-red-600" />
+                    Invoice Date (Issued Date)
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={issuedDate}
+                    onChange={(e) => setIssuedDate(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-medium rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-600 font-mono"
+                  />
+                </div>
+
                 <div className="space-y-1">
                   <label className="block font-bold uppercase text-slate-700">Developer Name</label>
                   <input
@@ -2027,6 +2262,111 @@ function CommissionInvoicesContent() {
                 )}
               </div>
 
+              {/* FILE ATTACHMENTS & DOCUMENTS (STORED ON S3) */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <Paperclip className="w-4 h-4 text-red-600" />
+                    Document Attachments (Stored on S3 under commissions_hub/)
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    {pendingAttachments.length} Pending Attachment(s)
+                  </span>
+                </div>
+
+                {/* Upload File Input controls */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 bg-white p-3 rounded-xl border border-slate-200">
+                  <div className="sm:col-span-5">
+                    <select
+                      value={pendingCatId}
+                      onChange={(e) => setPendingCatId(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs font-medium rounded-xl px-2.5 py-2 focus:outline-none focus:border-red-600"
+                    >
+                      <option value="">Select Document Category...</option>
+                      {salesFileCategories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name} {cat.is_required ? "(Required)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-5">
+                    <input
+                      type="file"
+                      id="pending-attachment-file"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setPendingFile(e.target.files[0]);
+                        }
+                      }}
+                      className="w-full text-xs text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <button
+                      type="button"
+                      disabled={!pendingCatId || !pendingFile}
+                      onClick={() => {
+                        if (!pendingCatId || !pendingFile) return;
+                        const cat = salesFileCategories.find((c) => String(c.id) === String(pendingCatId));
+                        if (!cat) return;
+                        setPendingAttachments([
+                          ...pendingAttachments,
+                          {
+                            id: Date.now().toString(),
+                            file: pendingFile,
+                            categoryId: cat.id,
+                            categoryCode: cat.code || "GENERAL",
+                            categoryName: cat.name,
+                          },
+                        ]);
+                        setPendingFile(null);
+                        setPendingCatId("");
+                        const fileInput = document.getElementById("pending-attachment-file") as HTMLInputElement;
+                        if (fileInput) fileInput.value = "";
+                      }}
+                      className="w-full py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs cursor-pointer disabled:opacity-50"
+                    >
+                      Attach
+                    </button>
+                  </div>
+                </div>
+
+                {/* Pending attachments list */}
+                {pendingAttachments.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    {pendingAttachments.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-2.5 bg-white border border-slate-200 rounded-xl text-xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 bg-red-50 text-red-700 border border-red-200 rounded-md text-[10px] font-bold">
+                            {item.categoryName}
+                          </span>
+                          <span className="font-medium text-slate-800 truncate max-w-[200px]">
+                            {item.file.name}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            ({(item.file.size / 1024).toFixed(1)} KB)
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setPendingAttachments(pendingAttachments.filter((p) => p.id !== item.id))}
+                          className="p-1 text-slate-400 hover:text-red-600 rounded-md hover:bg-red-50 cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
@@ -2124,59 +2464,92 @@ function CommissionInvoicesContent() {
                 Invoice Type
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setEditInvoiceType("TAX_INVOICE")}
-                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                    editInvoiceType === "TAX_INVOICE"
-                      ? "bg-blue-600 text-white border-blue-600 font-bold"
-                      : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                  }`}
-                >
-                  <span className="font-bold text-xs block">TAX INVOICE</span>
-                </button>
+                {dbInvoiceTypes.length > 0 ? (
+                  dbInvoiceTypes.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setEditInvoiceType(t.code)}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        editInvoiceType === t.code
+                          ? "bg-blue-600 text-white border-blue-600 font-bold"
+                          : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      <span className="font-bold text-xs block uppercase truncate">{t.label}</span>
+                    </button>
+                  ))
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setEditInvoiceType("TAX_INVOICE")}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        editInvoiceType === "TAX_INVOICE"
+                          ? "bg-blue-600 text-white border-blue-600 font-bold"
+                          : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      <span className="font-bold text-xs block">TAX INVOICE</span>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => setEditInvoiceType("AGENT_PAYOUT")}
-                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                    editInvoiceType === "AGENT_PAYOUT"
-                      ? "bg-blue-600 text-white border-blue-600 font-bold"
-                      : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                  }`}
-                >
-                  <span className="font-bold text-xs block">AGENT PAYOUT</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditInvoiceType("AGENT_PAYOUT")}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        editInvoiceType === "AGENT_PAYOUT"
+                          ? "bg-blue-600 text-white border-blue-600 font-bold"
+                          : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      <span className="font-bold text-xs block">AGENT PAYOUT</span>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => setEditInvoiceType("PARTIAL_TRANCHE")}
-                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                    editInvoiceType === "PARTIAL_TRANCHE"
-                      ? "bg-blue-600 text-white border-blue-600 font-bold"
-                      : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                  }`}
-                >
-                  <span className="font-bold text-xs block">TRANCHE</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditInvoiceType("PARTIAL_TRANCHE")}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        editInvoiceType === "PARTIAL_TRANCHE"
+                          ? "bg-blue-600 text-white border-blue-600 font-bold"
+                          : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      <span className="font-bold text-xs block">TRANCHE</span>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => setEditInvoiceType("PROFORMA")}
-                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                    editInvoiceType === "PROFORMA"
-                      ? "bg-blue-600 text-white border-blue-600 font-bold"
-                      : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                  }`}
-                >
-                  <span className="font-bold text-xs block">PROFORMA</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditInvoiceType("PROFORMA")}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                        editInvoiceType === "PROFORMA"
+                          ? "bg-blue-600 text-white border-blue-600 font-bold"
+                          : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                      }`}
+                    >
+                      <span className="font-bold text-xs block">PROFORMA</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
             {/* EDIT FORM INPUTS */}
             <form onSubmit={handleSaveInvoiceEdit} className="space-y-5 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="block font-bold uppercase text-slate-700 flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                    Invoice Date (Issued Date)
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={editIssuedDate}
+                    onChange={(e) => setEditIssuedDate(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-medium rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-600 font-mono"
+                  />
+                </div>
+
                 <div className="space-y-1">
                   <label className="block font-bold uppercase text-slate-700">Agent Name</label>
                   <input
@@ -2466,6 +2839,106 @@ function CommissionInvoicesContent() {
                     ))}
                   </div>
                 )}
+              </div>
+
+              {/* FILE ATTACHMENTS & DOCUMENTS (STORED ON S3) */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <Paperclip className="w-4 h-4 text-blue-600" />
+                    Document Attachments (Stored on S3 under commissions_hub/)
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    {editAttachments.length} Attachment(s)
+                  </span>
+                </div>
+
+                {/* List of existing attachments */}
+                {editAttachments.length === 0 ? (
+                  <p className="text-[11px] text-slate-400 italic">No files attached to this invoice yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {editAttachments.map((att) => (
+                      <div
+                        key={att.id}
+                        className="flex items-center justify-between p-2.5 bg-white border border-slate-200 rounded-xl text-xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-md text-[10px] font-bold">
+                            {att.category_name}
+                          </span>
+                          <span className="font-semibold text-slate-800 truncate max-w-[200px]">
+                            {att.file_name}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={att.s3_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] rounded-lg transition-colors flex items-center gap-1"
+                          >
+                            <ExternalLink className="w-3 h-3 text-blue-600" />
+                            <span>View / Download</span>
+                          </a>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteEditAttachment(att.id)}
+                            className="p-1 text-slate-400 hover:text-red-600 rounded-md hover:bg-red-50 cursor-pointer"
+                            title="Delete Attachment"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload new attachment controls */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 bg-white p-3 rounded-xl border border-slate-200">
+                  <div className="sm:col-span-5">
+                    <select
+                      value={editSelectedFileCatId}
+                      onChange={(e) => setEditSelectedFileCatId(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs font-medium rounded-xl px-2.5 py-2 focus:outline-none focus:border-blue-600"
+                    >
+                      <option value="">Select Document Category...</option>
+                      {salesFileCategories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-5">
+                    <input
+                      type="file"
+                      id="edit-attachment-file-input"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          setEditSelectedFile(e.target.files[0]);
+                        }
+                      }}
+                      className="w-full text-xs text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <button
+                      type="button"
+                      disabled={!editSelectedFileCatId || !editSelectedFile || uploadingEditFile}
+                      onClick={handleUploadEditAttachment}
+                      className="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1"
+                    >
+                      {uploadingEditFile ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                      <span>Upload</span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">

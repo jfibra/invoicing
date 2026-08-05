@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
       const [mRows] = await leuterioDb.query<RowDataPacket[]>("SELECT COUNT(*) as count FROM members WHERE status = 'active'");
       totalMembers = mRows[0]?.count || 0;
 
-      const [tRows] = await leuterioDb.query<RowDataPacket[]>("SELECT COUNT(*) as count FROM teams");
+      const [tRows] = await leuterioDb.query<RowDataPacket[]>("SELECT COUNT(*) as count FROM sales_team WHERE status = 'active'");
       totalTeams = tRows[0]?.count || 0;
     } catch (e) {
       console.error("Failed to query leuterioDb count:", e);

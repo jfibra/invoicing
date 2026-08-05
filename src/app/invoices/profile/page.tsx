@@ -25,6 +25,8 @@ import {
   Sparkles,
   CheckSquare,
   Image as ImageIcon,
+  Edit3,
+  X,
 } from "lucide-react";
 
 interface Address {
@@ -69,6 +71,16 @@ interface TeamOption {
   teamname: string;
 }
 
+interface InvoiceTypeSetting {
+  id: number;
+  code: string;
+  label: string;
+  invoice_title: string;
+  description: string;
+  status: "active" | "inactive";
+  sort_order: number;
+}
+
 export default function InvoiceProfilePage() {
   const [profileType, setProfileType] = useState<"ADMIN" | "TEAM">("ADMIN");
   const [selectedTeamId, setSelectedTeamId] = useState<string>("");
@@ -82,6 +94,108 @@ export default function InvoiceProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Invoice Types Settings State
+  const [invoiceTypesList, setInvoiceTypesList] = useState<InvoiceTypeSetting[]>([]);
+  const [loadingTypes, setLoadingTypes] = useState(false);
+  const [editingTypeItem, setEditingTypeItem] = useState<InvoiceTypeSetting | null>(null);
+  const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
+  const [typeForm, setTypeForm] = useState({
+    id: 0,
+    code: "",
+    label: "",
+    invoice_title: "",
+    description: "",
+    status: "active" as "active" | "inactive",
+    sort_order: 0,
+  });
+  const [savingType, setSavingType] = useState(false);
+
+  const fetchInvoiceTypes = useCallback(async () => {
+    setLoadingTypes(true);
+    try {
+      const res = await fetch("/api/settings/invoice-types");
+      const data = await res.json();
+      if (res.ok && data.invoiceTypes) {
+        setInvoiceTypesList(data.invoiceTypes);
+      }
+    } catch (err) {
+      console.error("Error fetching invoice types:", err);
+    } finally {
+      setLoadingTypes(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchInvoiceTypes();
+  }, [fetchInvoiceTypes]);
+
+  const handleOpenTypeModal = (typeItem?: InvoiceTypeSetting) => {
+    if (typeItem) {
+      setEditingTypeItem(typeItem);
+      setTypeForm({
+        id: typeItem.id,
+        code: typeItem.code,
+        label: typeItem.label,
+        invoice_title: typeItem.invoice_title,
+        description: typeItem.description || "",
+        status: typeItem.status,
+        sort_order: typeItem.sort_order || 0,
+      });
+    } else {
+      setEditingTypeItem(null);
+      setTypeForm({
+        id: 0,
+        code: "",
+        label: "",
+        invoice_title: "",
+        description: "",
+        status: "active",
+        sort_order: (invoiceTypesList.length + 1) * 10,
+      });
+    }
+    setIsTypeModalOpen(true);
+  };
+
+  const handleSaveTypeForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!typeForm.label.trim() || !typeForm.invoice_title.trim()) {
+      alert("Please enter both Label Name and Invoice Title.");
+      return;
+    }
+    setSavingType(true);
+    try {
+      const method = typeForm.id ? "PUT" : "POST";
+      const res = await fetch("/api/settings/invoice-types", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(typeForm),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Save failed");
+
+      setSuccessMsg(typeForm.id ? "Invoice type updated successfully!" : "New invoice type created successfully!");
+      setIsTypeModalOpen(false);
+      fetchInvoiceTypes();
+    } catch (err: any) {
+      alert(`Error saving invoice type: ${err.message}`);
+    } finally {
+      setSavingType(false);
+    }
+  };
+
+  const handleDeactivateType = async (id: number) => {
+    if (!confirm("Are you sure you want to deactivate this invoice type?")) return;
+    try {
+      const res = await fetch(`/api/settings/invoice-types?id=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Deactivation failed");
+      setSuccessMsg("Invoice type deactivated!");
+      fetchInvoiceTypes();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
 
   // Fetch Profile, Addresses, & Multiple Logos
   const fetchProfile = useCallback(async () => {
@@ -701,6 +815,106 @@ export default function InvoiceProfilePage() {
               </div>
             </div>
 
+            {/* 5. Invoice Types & Header Titles Settings (Database) */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xs space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                  <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-red-600" />
+                    Invoice Types & Upper Right Titles (Database Settings)
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Manage invoice types, editable label names, upper right canvas titles, and default descriptions stored directly in `commissions_hub`.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleOpenTypeModal()}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Invoice Type
+                </button>
+              </div>
+
+              {loadingTypes ? (
+                <div className="py-8 text-center text-slate-400 flex items-center justify-center gap-2 text-xs">
+                  <Loader2 className="w-5 h-5 animate-spin text-red-600" />
+                  Loading Invoice Types from Database...
+                </div>
+              ) : invoiceTypesList.length === 0 ? (
+                <div className="py-8 text-center text-slate-500 text-xs font-medium">
+                  No invoice types found in database. Click &quot;Add Invoice Type&quot; above to create one.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-100/70 border-b border-slate-200 text-slate-600 font-bold uppercase">
+                        <th className="p-3 rounded-l-xl">Type Code</th>
+                        <th className="p-3">Label Name</th>
+                        <th className="p-3">Upper Right Title (Invoice Header)</th>
+                        <th className="p-3">Default Particular Description</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3 text-right rounded-r-xl">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {invoiceTypesList.map((item) => (
+                        <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="p-3 font-mono font-bold text-slate-800">
+                            {item.code}
+                          </td>
+                          <td className="p-3 font-bold text-slate-900">
+                            {item.label}
+                          </td>
+                          <td className="p-3 font-black text-red-700 uppercase tracking-wide">
+                            {item.invoice_title}
+                          </td>
+                          <td className="p-3 text-slate-600 max-w-xs truncate">
+                            {item.description || "—"}
+                          </td>
+                          <td className="p-3">
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                                item.status === "active"
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : "bg-slate-200 text-slate-600"
+                              }`}
+                            >
+                              {item.status}
+                            </span>
+                          </td>
+                          <td className="p-3 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenTypeModal(item)}
+                                className="p-1.5 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+                                title="Edit Invoice Type Settings"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              {item.status === "active" && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeactivateType(item.id)}
+                                  className="p-1.5 text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 rounded-lg transition-colors cursor-pointer"
+                                  title="Deactivate Type"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
             {/* Save Button */}
             <div className="flex justify-end pt-4">
               <button
@@ -722,6 +936,149 @@ export default function InvoiceProfilePage() {
               </button>
             </div>
           </form>
+        )}
+
+        {/* Modal: Add / Edit Invoice Type */}
+        {isTypeModalOpen && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-red-50 text-red-600 rounded-xl">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">
+                      {editingTypeItem ? "Edit Invoice Type" : "Add New Invoice Type"}
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Changes persist directly to `commissions_hub` database.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsTypeModalOpen(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveTypeForm} className="space-y-4 text-xs">
+                <div>
+                  <label className="block font-bold uppercase text-slate-700 mb-1">
+                    Label Name <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Tax Invoice, Service Fee Statement"
+                    value={typeForm.label}
+                    onChange={(e) => setTypeForm({ ...typeForm, label: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-medium rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold uppercase text-slate-700 mb-1">
+                    Invoice Upper Right Title <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. TAX INVOICE, SERVICE FEE INVOICE"
+                    value={typeForm.invoice_title}
+                    onChange={(e) => setTypeForm({ ...typeForm, invoice_title: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-black tracking-wider uppercase rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-600"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    This exact text appears at the top right header of the generated PDF/Canvas invoice.
+                  </p>
+                </div>
+
+                {!editingTypeItem && (
+                  <div>
+                    <label className="block font-bold uppercase text-slate-700 mb-1">
+                      Type Code / Slug (Unique)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Auto-generated from label if left blank (e.g. TAX_INVOICE)"
+                      value={typeForm.code}
+                      onChange={(e) => setTypeForm({ ...typeForm, code: e.target.value.toUpperCase() })}
+                      className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-mono font-bold rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-600"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block font-bold uppercase text-slate-700 mb-1">
+                    Default Particular Description
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Default description displayed on invoice items/particulars"
+                    value={typeForm.description}
+                    onChange={(e) => setTypeForm({ ...typeForm, description: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-medium rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-600"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold uppercase text-slate-700 mb-1">Status</label>
+                    <select
+                      value={typeForm.status}
+                      onChange={(e) =>
+                        setTypeForm({ ...typeForm, status: e.target.value as "active" | "inactive" })
+                      }
+                      className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-bold rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-600"
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-bold uppercase text-slate-700 mb-1">Sort Order</label>
+                    <input
+                      type="number"
+                      value={typeForm.sort_order}
+                      onChange={(e) => setTypeForm({ ...typeForm, sort_order: parseInt(e.target.value, 10) || 0 })}
+                      className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-bold rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsTypeModalOpen(false)}
+                    className="px-4 py-2.5 text-slate-600 hover:text-slate-900 font-bold rounded-xl hover:bg-slate-100 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingType}
+                    className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-xs transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                  >
+                    {savingType ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        {editingTypeItem ? "Update Invoice Type" : "Create Invoice Type"}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
       </main>
     </div>
