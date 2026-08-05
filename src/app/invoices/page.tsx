@@ -223,7 +223,6 @@ function CommissionInvoicesContent() {
   const [projectName, setProjectName] = useState("");
   const [projectLocation, setProjectLocation] = useState("");
   const [unitNumber, setUnitNumber] = useState("");
-  const [spaReference, setSpaReference] = useState("");
   const [buyerName, setBuyerName] = useState("");
   const [projectValue, setProjectValue] = useState("");
   const [commissionReceived, setCommissionReceived] = useState("");
@@ -297,6 +296,7 @@ function CommissionInvoicesContent() {
   const [historyInvoices, setHistoryInvoices] = useState<any[]>([]);
   const [historyKpis, setHistoryKpis] = useState({
     total_count: 0,
+    total_commission_received: 0,
     total_net: 0,
     total_vat: 0,
     total_gross: 0,
@@ -321,7 +321,6 @@ function CommissionInvoicesContent() {
   const [editProjectName, setEditProjectName] = useState("");
   const [editProjectLocation, setEditProjectLocation] = useState("");
   const [editUnitNumber, setEditUnitNumber] = useState("");
-  const [editSpaReference, setEditSpaReference] = useState("");
   const [editBuyerName, setEditBuyerName] = useState("");
   const [editProjectValue, setEditProjectValue] = useState("");
   const [editCommissionReceived, setEditCommissionReceived] = useState("");
@@ -510,7 +509,6 @@ function CommissionInvoicesContent() {
     setProjectName("");
     setProjectLocation("");
     setUnitNumber("");
-    setSpaReference("");
     setBuyerName("");
     setProjectValue("");
     setCommissionReceived("");
@@ -577,7 +575,6 @@ function CommissionInvoicesContent() {
         project_name: projectName,
         project_location: projectLocation,
         unit_number: unitNumber,
-        spa_reference: spaReference,
         buyer_name: buyerName,
         project_value: projectValue ? Number(projectValue) : null,
         commission_received: commissionReceived ? Number(commissionReceived) : null,
@@ -623,7 +620,6 @@ function CommissionInvoicesContent() {
         projectName,
         projectLocation: projectLocation || undefined,
         unitNumber,
-        spaReference,
         buyerName: buyerName || undefined,
         projectValue: projectValue ? Number(projectValue) : undefined,
         commissionReceived: commissionReceived ? Number(commissionReceived) : undefined,
@@ -791,7 +787,6 @@ function CommissionInvoicesContent() {
     setEditProjectName(inv.project_name || "");
     setEditProjectLocation(inv.project_location || "");
     setEditUnitNumber(inv.unit_number || "");
-    setEditSpaReference(inv.spa_reference || "");
     setEditBuyerName(inv.buyer_name || "");
     setEditProjectValue(inv.project_value ? String(inv.project_value) : "");
     setEditCommissionReceived(inv.commission_received ? String(inv.commission_received) : "");
@@ -852,7 +847,6 @@ function CommissionInvoicesContent() {
         project_name: editProjectName,
         project_location: editProjectLocation,
         unit_number: editUnitNumber,
-        spa_reference: editSpaReference,
         buyer_name: editBuyerName,
         project_value: editProjectValue ? Number(editProjectValue) : null,
         commission_received: editCommissionReceived ? Number(editCommissionReceived) : null,
@@ -932,7 +926,6 @@ function CommissionInvoicesContent() {
       projectName: inv.project_name || undefined,
       projectLocation: inv.project_location || undefined,
       unitNumber: inv.unit_number || undefined,
-      spaReference: inv.spa_reference || undefined,
       buyerName: inv.buyer_name || undefined,
       projectValue: inv.project_value ? Number(inv.project_value) : undefined,
       commissionReceived: inv.commission_received ? Number(inv.commission_received) : undefined,
@@ -1276,7 +1269,7 @@ function CommissionInvoicesContent() {
         {activeMainTab === "history" && (
           <div className="space-y-6">
             {/* Summary KPI Overview Header */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
                   Total Saved Invoices
@@ -1285,6 +1278,16 @@ function CommissionInvoicesContent() {
                 <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" /> Stored in DB
                 </span>
+              </div>
+
+              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                  Total Comm. Received
+                </span>
+                <span className="text-2xl font-black text-blue-600 font-mono block">
+                  {Number(historyKpis.total_commission_received || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                </span>
+                <span className="text-[10px] text-blue-600 font-semibold">Gross Commission Received</span>
               </div>
 
               <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-1">
@@ -1418,7 +1421,9 @@ function CommissionInvoicesContent() {
                     <tr className="border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/50">
                       <th className="py-3 px-4">Invoice # & Date</th>
                       <th className="py-3 px-4">Agent Name / Code</th>
-                      <th className="py-3 px-4">Developer & Deal Ref</th>
+                      <th className="py-3 px-4">Developer & Project</th>
+                      <th className="py-3 px-4 text-right">Comm. Received</th>
+                      <th className="py-3 px-4 text-right">Agent Split (%)</th>
                       <th className="py-3 px-4 text-right">Net</th>
                       <th className="py-3 px-4 text-right">Gross Total</th>
                       <th className="py-3 px-4 text-center">Lock Status</th>
@@ -1428,14 +1433,14 @@ function CommissionInvoicesContent() {
                   <tbody className="divide-y divide-slate-100 text-xs">
                     {historyLoading ? (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center text-slate-400">
+                        <td colSpan={9} className="py-12 text-center text-slate-400">
                           <Loader2 className="w-6 h-6 animate-spin mx-auto text-red-600 mb-2" />
                           <span>Loading invoice history...</span>
                         </td>
                       </tr>
                     ) : historyInvoices.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center text-slate-400">
+                        <td colSpan={9} className="py-12 text-center text-slate-400">
                           No saved invoices found in database.
                         </td>
                       </tr>
@@ -1463,8 +1468,14 @@ function CommissionInvoicesContent() {
                               {inv.developer_name || "N/A"}
                             </span>
                             <span className="text-[10px] text-slate-400 block font-mono">
-                              {inv.project_name ? `${inv.project_name} (${inv.buyer_name ? `Buyer: ${inv.buyer_name}` : inv.project_location || 'Unit'})` : 'No SPA Ref'}
+                              {inv.project_name ? `${inv.project_name} (${inv.buyer_name ? `Buyer: ${inv.buyer_name}` : inv.unit_number || 'Unit'})` : 'N/A'}
                             </span>
+                          </td>
+                          <td className="py-4 px-4 text-right font-mono text-slate-700">
+                            {inv.commission_received ? `${inv.currency || "AED"} ${Number(inv.commission_received).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "-"}
+                          </td>
+                          <td className="py-4 px-4 text-right font-mono font-semibold text-slate-700">
+                            {inv.commission_rate ? `${Number(inv.commission_rate)}%` : "-"}
                           </td>
                           <td className="py-4 px-4 text-right font-mono font-semibold text-slate-700">
                             {inv.currency || "AED"} {Number(inv.net_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}
@@ -2034,17 +2045,6 @@ function CommissionInvoicesContent() {
                     value={unitNumber}
                     onChange={(e) => setUnitNumber(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-medium rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-600"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block font-bold uppercase text-slate-700">SPA / Deal Reference</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. SPA-EMAAR-9982"
-                    value={spaReference}
-                    onChange={(e) => setSpaReference(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-mono rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-600"
                   />
                 </div>
 
@@ -2628,16 +2628,6 @@ function CommissionInvoicesContent() {
                     value={editUnitNumber}
                     onChange={(e) => setEditUnitNumber(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-medium rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-600"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block font-bold uppercase text-slate-700">SPA / Deal Reference</label>
-                  <input
-                    type="text"
-                    value={editSpaReference}
-                    onChange={(e) => setEditSpaReference(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-mono rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-600"
                   />
                 </div>
 

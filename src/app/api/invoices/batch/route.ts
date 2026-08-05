@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
       try {
         const [result] = await commissionsDb.query<ResultSetHeader>(`
           INSERT INTO generated_invoices 
-          (invoice_number, invoice_type, template_style, particular_title, commission_status, member_id, agent_code, agent_name, agent_email, team_name, subteam_name, developer_name, project_name, project_location, unit_number, spa_reference, buyer_name, project_value, commission_received, commission_rate, net_amount, vat_rate, vat_amount, gross_amount, currency, status, issued_date, remarks, deductibles, profile_snapshot)
+          (invoice_number, invoice_type, template_style, particular_title, commission_status, member_id, agent_code, agent_name, agent_email, team_name, subteam_name, developer_name, project_name, project_location, unit_number, buyer_name, project_value, commission_received, commission_rate, net_amount, vat_rate, vat_amount, gross_amount, currency, status, issued_date, remarks, deductibles, profile_snapshot)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ISSUED', ?, ?, ?, ?)
         `, [
           invoiceNumber,
@@ -176,7 +176,6 @@ export async function POST(request: NextRequest) {
           item.project_name || null,
           item.project_location || null,
           item.unit_number || null,
-          item.spa_reference || null,
           item.buyer_name || null,
           projValNum,
           commRecNum,

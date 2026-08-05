@@ -25,7 +25,6 @@ async function ensureInvoicesTable() {
       project_name VARCHAR(255),
       project_location VARCHAR(255) NULL,
       unit_number VARCHAR(100),
-      spa_reference VARCHAR(100),
       buyer_name VARCHAR(255) NULL,
       project_value DECIMAL(15,2) NULL,
       commission_received DECIMAL(15,2) NULL,
@@ -51,10 +50,13 @@ async function ensureInvoicesTable() {
   `);
 
   try {
+    await commissionsDb.query("ALTER TABLE generated_invoices DROP COLUMN spa_reference");
+  } catch (e) {}
+  try {
     await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN particular_title VARCHAR(255) NULL AFTER template_style");
     await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN commission_status VARCHAR(100) NULL AFTER particular_title");
     await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN project_location VARCHAR(255) NULL AFTER project_name");
-    await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN buyer_name VARCHAR(255) NULL AFTER spa_reference");
+    await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN buyer_name VARCHAR(255) NULL AFTER unit_number");
     await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN project_value DECIMAL(15,2) NULL AFTER buyer_name");
     await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN commission_received DECIMAL(15,2) NULL AFTER project_value");
     await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN commission_rate DECIMAL(5,2) NULL AFTER commission_received");
@@ -102,12 +104,19 @@ export async function GET(request: NextRequest) {
     const [kpiRows] = await commissionsDb.query<RowDataPacket[]>(
       `SELECT 
         COUNT(*) as total_count,
+        COALESCE(SUM(commission_received), 0) as total_commission_received,
         COALESCE(SUM(net_amount), 0) as total_net,
         COALESCE(SUM(vat_amount), 0) as total_vat,
         COALESCE(SUM(gross_amount), 0) as total_gross
        FROM generated_invoices`
     );
-    const kpis = kpiRows[0] || { total_count: 0, total_net: 0, total_vat: 0, total_gross: 0 };
+    const kpis = kpiRows[0] || {
+      total_count: 0,
+      total_commission_received: 0,
+      total_net: 0,
+      total_vat: 0,
+      total_gross: 0,
+    };
 
     const [invoices] = await commissionsDb.query<RowDataPacket[]>(
       `SELECT * FROM generated_invoices ${whereClause} ORDER BY id DESC LIMIT ? OFFSET ?`,
@@ -255,7 +264,6 @@ export async function PUT(request: NextRequest) {
         project_name = ?,
         project_location = ?,
         unit_number = ?,
-        spa_reference = ?,
         buyer_name = ?,
         project_value = ?,
         commission_received = ?,
@@ -279,7 +287,6 @@ export async function PUT(request: NextRequest) {
         project_name || null,
         project_location || null,
         unit_number || null,
-        spa_reference || null,
         buyer_name || null,
         projValNum,
         commRecNum,

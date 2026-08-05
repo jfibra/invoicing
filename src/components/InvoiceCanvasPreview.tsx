@@ -28,7 +28,6 @@ export interface InvoiceCanvasData {
   projectName?: string;
   projectLocation?: string;
   unitNumber?: string;
-  spaReference?: string;
   buyerName?: string;
   projectValue?: number;
   commissionReceived?: number;
@@ -406,10 +405,10 @@ export default function InvoiceCanvasPreview({
 
     ctx.fillStyle = "#6B7280";
     ctx.font = "13px sans-serif";
-    ctx.fillText("Unit / SPA Ref:", card2X + 25, cardY + 154);
+    ctx.fillText("Unit Number:", card2X + 25, cardY + 154);
     ctx.fillStyle = "#111827";
     ctx.font = "bold 13px monospace";
-    ctx.fillText(`${data.unitNumber || "N/A"}   |   ${data.spaReference || "SPA"}`, card2X + 135, cardY + 154);
+    ctx.fillText(data.unitNumber || "N/A", card2X + 135, cardY + 154);
 
     // Deal Value & Split % Row
     if (data.commissionReceived || data.projectValue) {

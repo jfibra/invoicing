@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
       project_name,
       project_location,
       unit_number,
-      spa_reference,
       buyer_name,
       project_value,
       commission_received,
@@ -160,8 +159,8 @@ export async function POST(request: NextRequest) {
 
     const [result] = await commissionsDb.query<ResultSetHeader>(`
       INSERT INTO generated_invoices 
-      (invoice_number, invoice_type, template_style, particular_title, commission_status, member_id, agent_code, agent_name, agent_email, team_name, subteam_name, developer_name, project_name, project_location, unit_number, spa_reference, buyer_name, project_value, commission_received, commission_rate, net_amount, vat_rate, vat_amount, gross_amount, currency, status, issued_date, remarks, deductibles, profile_snapshot)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ISSUED', ?, ?, ?, ?)
+      (invoice_number, invoice_type, template_style, particular_title, commission_status, member_id, agent_code, agent_name, agent_email, team_name, subteam_name, developer_name, project_name, project_location, unit_number, buyer_name, project_value, commission_received, commission_rate, net_amount, vat_rate, vat_amount, gross_amount, currency, status, issued_date, remarks, deductibles, profile_snapshot)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ISSUED', ?, ?, ?, ?)
     `, [
       invoiceNumber,
       invoice_type || "TAX_INVOICE",
@@ -178,7 +177,6 @@ export async function POST(request: NextRequest) {
       project_name || null,
       project_location || null,
       unit_number || null,
-      spa_reference || null,
       buyer_name || null,
       projValNum,
       commRecNum,
