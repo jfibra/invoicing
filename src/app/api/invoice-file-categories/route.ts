@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { commissionsDb } from "@/lib/db";
 import { ensureInvoiceFileCategoriesTable } from "@/lib/invoiceFileCategories";
+import { logSiteActivity } from "@/lib/activityLogger";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 // GET: Fetch list of invoice file categories
@@ -84,6 +85,14 @@ export async function POST(request: NextRequest) {
       [result.insertId]
     );
 
+    await logSiteActivity({
+      user_name: "System Admin",
+      action_type: "CREATE_FILE_CATEGORY",
+      module_name: "SETTINGS",
+      description: `Created ${type} document attachment rule '${name.trim()}'${categoryCode ? ` (${categoryCode})` : ""}`,
+      metadata: { category_id: result.insertId, name: name.trim(), code: categoryCode, type, is_required: isRequired },
+    });
+
     return NextResponse.json({
       success: true,
       message: "Invoice file category created successfully",
@@ -120,6 +129,14 @@ export async function PUT(request: NextRequest) {
     // Handle Restore Action
     if (action === "restore") {
       await commissionsDb.query("UPDATE invoice_file_categories SET deleted_at = NULL WHERE id = ?", [id]);
+      await logSiteActivity({
+        user_name: "System Admin",
+        action_type: "RESTORE_FILE_CATEGORY",
+        module_name: "SETTINGS",
+        description: `Restored document attachment rule '${existing[0].name}' (#${id})`,
+        metadata: { category_id: id, name: existing[0].name },
+      });
+
       return NextResponse.json({
         success: true,
         message: "Invoice file category restored successfully",
@@ -154,6 +171,14 @@ export async function PUT(request: NextRequest) {
       "SELECT * FROM invoice_file_categories WHERE id = ?",
       [id]
     );
+
+    await logSiteActivity({
+      user_name: "System Admin",
+      action_type: "UPDATE_FILE_CATEGORY",
+      module_name: "SETTINGS",
+      description: `Updated document attachment rule '${name.trim()}' (#${id})`,
+      metadata: { category_id: id, name: name.trim(), type, is_required: isRequired },
+    });
 
     return NextResponse.json({
       success: true,
@@ -200,6 +225,14 @@ export async function DELETE(request: NextRequest) {
       "UPDATE invoice_file_categories SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
       [id]
     );
+
+    await logSiteActivity({
+      user_name: "System Admin",
+      action_type: "DELETE_FILE_CATEGORY",
+      module_name: "SETTINGS",
+      description: `Soft-deleted document attachment rule '${existing[0].name}' (#${id})`,
+      metadata: { category_id: id, name: existing[0].name },
+    });
 
     return NextResponse.json({
       success: true,

@@ -57,6 +57,7 @@ export default function DashboardPage() {
   // Live Dashboard Analytics State
   const [stats, setStats] = useState<any>({
     total_invoices: 0,
+    total_commission_received: 0,
     total_net: 0,
     total_vat: 0,
     total_gross: 0,
@@ -264,7 +265,21 @@ export default function DashboardPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+            {/* KPI: Total Commission Received */}
+            <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-xs space-y-2 relative overflow-hidden">
+              <div className="flex items-center justify-between text-slate-500">
+                <span className="text-xs font-bold uppercase tracking-wider">Comm. Received</span>
+                <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                  <Coins className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-2xl font-black text-blue-600 font-mono">
+                AED {Number(stats.total_commission_received || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium">Gross received before split</p>
+            </div>
+
             {/* KPI 1: Gross Invoice Volume */}
             <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-xs space-y-2 relative overflow-hidden">
               <div className="flex items-center justify-between text-slate-500">

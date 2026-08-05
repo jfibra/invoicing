@@ -48,6 +48,7 @@ import {
   AlertTriangle,
   Calendar,
   Paperclip,
+  Tag,
   FileText as FileIcon,
   ExternalLink,
 } from "lucide-react";
@@ -238,6 +239,7 @@ function CommissionInvoicesContent() {
 
   // Generated Canvas Preview Data State
   const [activeCanvasInvoice, setActiveCanvasInvoice] = useState<InvoiceCanvasData | null>(null);
+  const [customInvoiceNumber, setCustomInvoiceNumber] = useState("");
   const [issuing, setIssuing] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -304,6 +306,7 @@ function CommissionInvoicesContent() {
   const [historySearch, setHistorySearch] = useState("");
   const [historyType, setHistoryType] = useState("");
   const [historyStatus, setHistoryStatus] = useState("");
+  const [historyYear, setHistoryYear] = useState("");
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPagination, setHistoryPagination] = useState({ total: 0, totalPages: 1 });
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -312,6 +315,7 @@ function CommissionInvoicesContent() {
   // Edit Invoice Modal State
   // -------------------------------------------------------------
   const [editingInvoice, setEditingInvoice] = useState<any | null>(null);
+  const [editInvoiceNumber, setEditInvoiceNumber] = useState("");
   const [editIssuedDate, setEditIssuedDate] = useState("");
   const [editInvoiceType, setEditInvoiceType] = useState<InvoiceType>("TAX_INVOICE");
   const [editCurrency, setEditCurrency] = useState<"AED" | "PHP">("AED");
@@ -334,6 +338,91 @@ function CommissionInvoicesContent() {
   const [editCommissionStatus, setEditCommissionStatus] = useState("NONE");
   const [editCustomCommissionStatus, setEditCustomCommissionStatus] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+
+  // -------------------------------------------------------------
+  // Quick View Attachments Modal State
+  // -------------------------------------------------------------
+  const [viewAttModalOpen, setViewAttModalOpen] = useState(false);
+  const [viewAttInvoice, setViewAttInvoice] = useState<any | null>(null);
+  const [viewAttList, setViewAttList] = useState<any[]>([]);
+  const [viewAttLoading, setViewAttLoading] = useState(false);
+  const [viewAttSelectedCatId, setViewAttSelectedCatId] = useState("");
+  const [viewAttFile, setViewAttFile] = useState<File | null>(null);
+  const [viewAttUploading, setViewAttUploading] = useState(false);
+
+  const handleOpenViewAttachmentsModal = async (inv: any) => {
+    setViewAttInvoice(inv);
+    setViewAttList([]);
+    setViewAttSelectedCatId("");
+    setViewAttFile(null);
+    setViewAttModalOpen(true);
+    setViewAttLoading(true);
+    try {
+      const res = await fetch(`/api/invoices/attachments?invoice_id=${inv.id}`);
+      const data = await res.json();
+      if (res.ok && data.attachments) {
+        setViewAttList(data.attachments);
+      }
+    } catch (err) {
+      console.error("Failed to fetch attachments:", err);
+    } finally {
+      setViewAttLoading(false);
+    }
+  };
+
+  const handleUploadQuickAttachment = async () => {
+    if (!viewAttInvoice || !viewAttFile) return;
+    setViewAttUploading(true);
+    try {
+      const selectedCat = salesFileCategories.find((c) => String(c.id) === String(viewAttSelectedCatId));
+      const formData = new FormData();
+      formData.append("file", viewAttFile);
+      formData.append("invoice_id", String(viewAttInvoice.id));
+      formData.append("invoice_number", viewAttInvoice.invoice_number);
+      formData.append("category_id", selectedCat ? String(selectedCat.id) : "");
+      formData.append("category_code", selectedCat ? selectedCat.code || "" : "");
+      formData.append("category_name", selectedCat ? selectedCat.name : "General Document");
+
+      const res = await fetch("/api/invoices/attachments", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to upload attachment");
+
+      setViewAttFile(null);
+      const fileInput = document.getElementById("quick-view-attachment-file") as HTMLInputElement;
+      if (fileInput) fileInput.value = "";
+
+      const attRes = await fetch(`/api/invoices/attachments?invoice_id=${viewAttInvoice.id}`);
+      const attData = await attRes.json();
+      if (attRes.ok && attData.attachments) {
+        setViewAttList(attData.attachments);
+      }
+      fetchInvoiceHistory();
+    } catch (err: any) {
+      alert(err.message || "Error uploading attachment.");
+    } finally {
+      setViewAttUploading(false);
+    }
+  };
+
+  const handleDeleteQuickAttachment = async (attachmentId: number) => {
+    if (!confirm("Are you sure you want to delete this attachment from S3 and database?")) return;
+    try {
+      const res = await fetch(`/api/invoices/attachments?id=${attachmentId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete attachment");
+
+      const attRes = await fetch(`/api/invoices/attachments?invoice_id=${viewAttInvoice.id}`);
+      const attData = await attRes.json();
+      if (attRes.ok && attData.attachments) {
+        setViewAttList(attData.attachments);
+      }
+      fetchInvoiceHistory();
+    } catch (err) {
+      alert("Failed to delete attachment.");
+    }
+  };
 
   // Handle URL Query Params
   useEffect(() => {
@@ -416,6 +505,7 @@ function CommissionInvoicesContent() {
         search: historySearch,
         type: historyType,
         status: historyStatus,
+        year: historyYear,
         page: historyPage.toString(),
         limit: "10",
       });
@@ -431,7 +521,7 @@ function CommissionInvoicesContent() {
     } finally {
       setHistoryLoading(false);
     }
-  }, [historySearch, historyType, historyStatus, historyPage]);
+  }, [historySearch, historyType, historyStatus, historyYear, historyPage]);
 
   useEffect(() => {
     if (activeMainTab === "history") {
@@ -503,6 +593,32 @@ function CommissionInvoicesContent() {
 
   const handleOpenIssueModal = (m: InvoicingMember) => {
     setSelectedMemberForInvoice(m);
+    setCustomInvoiceNumber("");
+    setIssuedDate(new Date().toISOString().slice(0, 10));
+    setCurrency("AED");
+    setDeveloperName("");
+    setProjectName("");
+    setProjectLocation("");
+    setUnitNumber("");
+    setBuyerName("");
+    setProjectValue("");
+    setCommissionReceived("");
+    setCommissionRate("");
+    setNetAmount("");
+    setIncludeVat(true);
+    setDeductibles([]);
+    setPendingAttachments([]);
+    setPendingCatId("");
+    setPendingFile(null);
+    setRemarks("");
+    setParticularTitle("");
+    setCommissionStatus("NONE");
+    setCustomCommissionStatus("");
+  };
+
+  const handleResetInvoiceForm = () => {
+    setSelectedMemberForInvoice(null);
+    setCustomInvoiceNumber("");
     setIssuedDate(new Date().toISOString().slice(0, 10));
     setCurrency("AED");
     setDeveloperName("");
@@ -560,6 +676,7 @@ function CommissionInvoicesContent() {
       const activeStatusText = commissionStatus === "CUSTOM" ? customCommissionStatus : commissionStatus;
 
       const payload = {
+        invoice_number: customInvoiceNumber.trim() || undefined,
         invoice_type: selectedInvoiceType,
         template_style: selectedTemplateStyle,
         currency,
@@ -768,6 +885,7 @@ function CommissionInvoicesContent() {
     }
 
     setEditingInvoice(inv);
+    setEditInvoiceNumber(inv.invoice_number || "");
     setEditAttachments([]);
     setEditSelectedFileCatId("");
     setEditSelectedFile(null);
@@ -837,6 +955,7 @@ function CommissionInvoicesContent() {
 
       const payload = {
         id: editingInvoice.id,
+        invoice_number: editInvoiceNumber.trim() || editingInvoice.invoice_number,
         invoice_type: editInvoiceType,
         currency: editCurrency,
         particular_title: editParticularTitle,
@@ -1323,25 +1442,108 @@ function CommissionInvoicesContent() {
 
             {/* Tracker Search & Filter Bar */}
             <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
                   Search & Filter Saved Invoice Records
                 </span>
-                <button
-                  onClick={() => {
-                    setHistorySearch("");
-                    setHistoryType("");
-                    setHistoryStatus("");
-                    setHistoryPage(1);
-                  }}
-                  className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Clear Filters
-                </button>
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const query = new URLSearchParams({
+                          search: historySearch,
+                          type: historyType,
+                          status: historyStatus,
+                          year: historyYear,
+                          page: "1",
+                          limit: "1000",
+                        });
+                        const res = await fetch(`/api/invoices?${query.toString()}`);
+                        const data = await res.json();
+                        if (!res.ok || !data.invoices) {
+                          alert("Failed to fetch invoices for export");
+                          return;
+                        }
+
+                        const rows: any[] = data.invoices;
+                        const kpis = data.kpis || {};
+                        const generatedAt = new Date().toLocaleString();
+
+                        let csv = "";
+                        csv += `"COMMISSION INVOICES & FINANCIAL AUDIT REPORT"\n`;
+                        csv += `"Generated At:","${generatedAt}"\n`;
+                        csv += `"Filters Applied:","Search: ${historySearch || 'All'} | Type: ${historyType || 'All'} | Status: ${historyStatus || 'All'} | Year: ${historyYear || 'All'}"\n\n`;
+
+                        csv += `"FINANCIAL SUMMARY KPIS"\n`;
+                        csv += `"Total Invoices","${kpis.total_count || rows.length}"\n`;
+                        csv += `"Total Comm Received (AED)","${Number(kpis.total_commission_received || 0).toFixed(2)}"\n`;
+                        csv += `"Total Net Amount (AED)","${Number(kpis.total_net || 0).toFixed(2)}"\n`;
+                        csv += `"Total VAT (5%) (AED)","${Number(kpis.total_vat || 0).toFixed(2)}"\n`;
+                        csv += `"Total Gross Total (AED)","${Number(kpis.total_gross || 0).toFixed(2)}"\n\n`;
+
+                        csv += `"Invoice Number","Issued Date","Type","Agent Code","Agent Name","Developer Name","Project Name","Project Location","Unit Number","Buyer Name","Commission Received (AED)","Agent Split (%)","Net Amount (AED)","VAT Amount (AED)","Gross Amount (AED)","Currency","Lock Status","Remarks"\n`;
+
+                        let sumNet = 0;
+                        let sumVat = 0;
+                        let sumGross = 0;
+                        let sumCommRec = 0;
+
+                        rows.forEach((inv) => {
+                          const net = Number(inv.net_amount || 0);
+                          const vat = Number(inv.vat_amount || 0);
+                          const gross = Number(inv.gross_amount || 0);
+                          const commRec = Number(inv.commission_received || 0);
+
+                          sumNet += net;
+                          sumVat += vat;
+                          sumGross += gross;
+                          sumCommRec += commRec;
+
+                          const dateStr = inv.issued_date ? new Date(inv.issued_date).toISOString().slice(0, 10) : "";
+                          const cleanRemarks = (inv.remarks || "").replace(/"/g, '""').replace(/\n/g, ' ');
+
+                          csv += `"${inv.invoice_number}","${dateStr}","${inv.invoice_type || ''}","${inv.agent_code || ''}","${inv.agent_name || ''}","${inv.developer_name || ''}","${inv.project_name || ''}","${inv.project_location || ''}","${inv.unit_number || ''}","${inv.buyer_name || ''}","${commRec.toFixed(2)}","${inv.commission_rate || ''}","${net.toFixed(2)}","${vat.toFixed(2)}","${gross.toFixed(2)}","${inv.currency || 'AED'}","${inv.is_locked ? 'Locked' : 'Unlocked'}","${cleanRemarks}"\n`;
+                        });
+
+                        csv += `"TOTALS","","","","","","","","","","${sumCommRec.toFixed(2)}","","${sumNet.toFixed(2)}","${sumVat.toFixed(2)}","${sumGross.toFixed(2)}","","",""\n`;
+
+                        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.setAttribute("href", url);
+                        const filename = `Commission_Invoices_Report_${historyYear || 'All'}_${new Date().toISOString().slice(0, 10)}.csv`;
+                        link.setAttribute("download", filename);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      } catch (err: any) {
+                        alert("Error exporting CSV: " + err.message);
+                      }
+                    }}
+                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Export CSV Report</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setHistorySearch("");
+                      setHistoryType("");
+                      setHistoryStatus("");
+                      setHistoryYear("");
+                      setHistoryPage(1);
+                    }}
+                    className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    Clear Filters
+                  </button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                   <input
@@ -1400,6 +1602,24 @@ function CommissionInvoicesContent() {
                     <option value="CANCELLED">Cancelled</option>
                   </select>
                 </div>
+
+                <div className="relative">
+                  <Calendar className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                  <select
+                    value={historyYear}
+                    onChange={(e) => {
+                      setHistoryYear(e.target.value);
+                      setHistoryPage(1);
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-bold focus:outline-none focus:border-red-600 cursor-pointer"
+                  >
+                    <option value="">All Issued Years</option>
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                    <option value="2023">2023</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -1448,9 +1668,22 @@ function CommissionInvoicesContent() {
                       historyInvoices.map((inv) => (
                         <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
                           <td className="py-4 px-4">
-                            <span className="font-bold font-mono text-slate-900 block">
-                              {inv.invoice_number}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold font-mono text-slate-900">
+                                {inv.invoice_number}
+                              </span>
+                              {Number(inv.attachment_count) > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenViewAttachmentsModal(inv)}
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-800 text-[10px] font-bold hover:bg-purple-200 transition-colors cursor-pointer"
+                                  title="View document attachments"
+                                >
+                                  <Paperclip className="w-3 h-3 text-purple-600" />
+                                  <span>{inv.attachment_count}</span>
+                                </button>
+                              )}
+                            </div>
                             <span className="text-[10px] text-slate-400 block mt-0.5">
                               {inv.issued_date ? new Date(inv.issued_date).toISOString().slice(0, 10) : "N/A"} • {inv.invoice_type}
                             </span>
@@ -1511,6 +1744,17 @@ function CommissionInvoicesContent() {
 
                           <td className="py-4 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
+                              {/* VIEW ATTACHMENTS SHORTCUT BUTTON */}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenViewAttachmentsModal(inv)}
+                                className="px-2.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+                                title="View & Manage S3 Document Attachments"
+                              >
+                                <Paperclip className="w-3.5 h-3.5 text-purple-600" />
+                                <span>Files ({inv.attachment_count || 0})</span>
+                              </button>
+
                               {/* EDIT ACTION BUTTON */}
                               <button
                                 type="button"
@@ -1969,7 +2213,7 @@ function CommissionInvoicesContent() {
             {/* FORM INPUTS */}
             <form onSubmit={handleGenerateInvoiceSubmit} className="space-y-5 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1 sm:col-span-2">
+                <div className="space-y-1">
                   <label className="block font-bold uppercase text-slate-700 flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-red-600" />
                     Invoice Date (Issued Date)
@@ -1980,6 +2224,20 @@ function CommissionInvoicesContent() {
                     value={issuedDate}
                     onChange={(e) => setIssuedDate(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-medium rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-600 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block font-bold uppercase text-slate-700 flex items-center gap-1">
+                    <Tag className="w-3.5 h-3.5 text-red-600" />
+                    Custom Invoice # (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Auto-generated if left blank"
+                    value={customInvoiceNumber}
+                    onChange={(e) => setCustomInvoiceNumber(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-mono rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-600"
                   />
                 </div>
 
@@ -2536,7 +2794,21 @@ function CommissionInvoicesContent() {
             {/* EDIT FORM INPUTS */}
             <form onSubmit={handleSaveInvoiceEdit} className="space-y-5 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1 sm:col-span-2">
+                <div className="space-y-1">
+                  <label className="block font-bold uppercase text-slate-700 flex items-center gap-1">
+                    <Tag className="w-3.5 h-3.5 text-blue-600" />
+                    Invoice # / Reference
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editInvoiceNumber}
+                    onChange={(e) => setEditInvoiceNumber(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 text-slate-900 font-mono font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-600"
+                  />
+                </div>
+
+                <div className="space-y-1">
                   <label className="block font-bold uppercase text-slate-700 flex items-center gap-1">
                     <Calendar className="w-3.5 h-3.5 text-blue-600" />
                     Invoice Date (Issued Date)
@@ -2959,6 +3231,165 @@ function CommissionInvoicesContent() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: QUICK VIEW & UPLOAD INVOICE ATTACHMENTS             */}
+      {/* ========================================================= */}
+      {viewAttModalOpen && viewAttInvoice && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-2xl w-full shadow-2xl relative space-y-6 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setViewAttModalOpen(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 text-xs font-bold border border-purple-200">
+                <Paperclip className="w-3.5 h-3.5" />
+                S3 Document Attachments
+              </div>
+              <h2 className="text-xl font-black text-slate-900">
+                Attachments for Invoice #{viewAttInvoice.invoice_number}
+              </h2>
+              <p className="text-xs text-slate-500">
+                {viewAttInvoice.agent_name} • {viewAttInvoice.developer_name || 'N/A'} - {viewAttInvoice.project_name || 'N/A'}
+              </p>
+            </div>
+
+            {/* List of existing attachments */}
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Uploaded Files ({viewAttList.length})
+              </h3>
+
+              {viewAttLoading ? (
+                <div className="py-8 text-center text-slate-400">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-purple-600 mb-2" />
+                  <span className="text-xs font-bold">Loading attachments from AWS S3...</span>
+                </div>
+              ) : viewAttList.length === 0 ? (
+                <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 text-center text-xs text-slate-400 font-medium">
+                  No document attachments uploaded for this invoice yet.
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/50">
+                  {viewAttList.map((att) => (
+                    <div
+                      key={att.id}
+                      className="p-3.5 bg-white hover:bg-slate-50 transition-colors flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center shrink-0">
+                          <Paperclip className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-900 truncate">{att.file_name}</div>
+                          <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
+                            <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full font-bold uppercase tracking-wider text-[9px]">
+                              {att.category_name}
+                            </span>
+                            <span>{att.file_size ? `${(att.file_size / 1024).toFixed(1)} KB` : "S3 File"}</span>
+                            <span>• {att.uploaded_at ? new Date(att.uploaded_at).toLocaleDateString() : ""}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <a
+                          href={att.s3_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-purple-400" />
+                          <span>View File</span>
+                        </a>
+
+                        {!viewAttInvoice.is_locked && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteQuickAttachment(att.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            title="Delete Attachment"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Quick Upload Control */}
+            {!viewAttInvoice.is_locked && (
+              <div className="pt-4 border-t border-slate-100 space-y-3 text-xs">
+                <h3 className="font-bold uppercase text-slate-700 flex items-center gap-1.5">
+                  <Upload className="w-4 h-4 text-purple-600" />
+                  Attach New Document to Invoice
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                      Select Category
+                    </label>
+                    <select
+                      value={viewAttSelectedCatId}
+                      onChange={(e) => setViewAttSelectedCatId(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 font-bold focus:outline-none focus:border-purple-600"
+                    >
+                      <option value="">General Document Attachment</option>
+                      {salesFileCategories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name} {cat.is_required ? "*" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                      Choose File
+                    </label>
+                    <input
+                      type="file"
+                      id="quick-view-attachment-file"
+                      onChange={(e) => setViewAttFile(e.target.files?.[0] || null)}
+                      className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={handleUploadQuickAttachment}
+                    disabled={!viewAttFile || viewAttUploading}
+                    className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {viewAttUploading && <Loader2 className="w-4 h-4 animate-spin" />}
+                    <span>{viewAttUploading ? "Uploading to S3..." : "Upload Attachment"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="pt-4 flex justify-end border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setViewAttModalOpen(false)}
+                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs shadow-md cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

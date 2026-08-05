@@ -65,12 +65,15 @@ export async function POST(request: NextRequest) {
 
     const grossNum = netNum + vatNum - totalDeductibles;
 
+    const customInvNum = body.invoice_number || body.invoiceNumber;
     const typePrefix = invoice_type
       ? (invoice_type.replace(/[^A-Z0-9]/gi, "").substring(0, 3).toUpperCase())
       : "INV";
     const yearMonth = new Date().toISOString().slice(0, 7).replace("-", "");
     const randomSeq = Math.floor(1000 + Math.random() * 9000);
-    const invoiceNumber = `LR-DXB-${typePrefix}-${yearMonth}-${randomSeq}`;
+    const invoiceNumber = (customInvNum && String(customInvNum).trim())
+      ? String(customInvNum).trim()
+      : `LR-DXB-${typePrefix}-${yearMonth}-${randomSeq}`;
 
     let profile = null;
     let logoUrl = null;

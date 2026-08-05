@@ -43,12 +43,13 @@ export async function GET(request: NextRequest) {
     const [kpiRows] = await commissionsDb.query<RowDataPacket[]>(`
       SELECT 
         COUNT(*) as total_invoices,
+        COALESCE(SUM(commission_received), 0) as total_commission_received,
         COALESCE(SUM(net_amount), 0) as total_net,
         COALESCE(SUM(vat_amount), 0) as total_vat,
         COALESCE(SUM(gross_amount), 0) as total_gross
       FROM generated_invoices
     `);
-    const kpis = kpiRows[0] || { total_invoices: 0, total_net: 0, total_vat: 0, total_gross: 0 };
+    const kpis = kpiRows[0] || { total_invoices: 0, total_commission_received: 0, total_net: 0, total_vat: 0, total_gross: 0 };
 
     // 3. Fetch Total Members Count & Total Teams Count
     let totalMembers = 0;
@@ -87,6 +88,7 @@ export async function GET(request: NextRequest) {
       success: true,
       stats: {
         total_invoices: kpis.total_invoices,
+        total_commission_received: Number(kpis.total_commission_received || 0),
         total_net: Number(kpis.total_net),
         total_vat: Number(kpis.total_vat),
         total_gross: Number(kpis.total_gross),

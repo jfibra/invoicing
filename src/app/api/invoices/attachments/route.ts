@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { commissionsDb } from "@/lib/db";
 import { ensureInvoiceFilesTable } from "@/lib/invoiceAttachments";
+import { logSiteActivity } from "@/lib/activityLogger";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 const s3Client = new S3Client({
@@ -120,6 +121,14 @@ export async function POST(request: NextRequest) {
       [result.insertId]
     );
 
+    await logSiteActivity({
+      user_name: "System Admin",
+      action_type: "UPLOAD_ATTACHMENT",
+      module_name: "INVOICES",
+      description: `Uploaded document '${originalName}' (${categoryName}) for invoice #${invoiceNumber}`,
+      metadata: { invoice_id: invoiceId, invoice_number: invoiceNumber, file_name: originalName, category_name: categoryName, s3_url: s3Url },
+    });
+
     return NextResponse.json({
       success: true,
       message: "File uploaded successfully to S3 under commissions_hub/",
@@ -178,6 +187,14 @@ export async function DELETE(request: NextRequest) {
 
     // Delete record from database
     await commissionsDb.query("DELETE FROM generated_invoice_files WHERE id = ?", [id]);
+
+    await logSiteActivity({
+      user_name: "System Admin",
+      action_type: "DELETE_ATTACHMENT",
+      module_name: "INVOICES",
+      description: `Deleted document '${record.file_name}' from invoice #${record.invoice_number}`,
+      metadata: { attachment_id: id, invoice_id: record.invoice_id, file_name: record.file_name },
+    });
 
     return NextResponse.json({
       success: true,

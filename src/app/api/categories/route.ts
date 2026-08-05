@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { commissionsDb } from "@/lib/db";
 import { ensureCategoriesTable } from "@/lib/categories";
+import { logSiteActivity } from "@/lib/activityLogger";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 // GET: Fetch list of categories (Supports type, status, include_deleted, search)
@@ -83,6 +84,14 @@ export async function POST(request: NextRequest) {
       [result.insertId]
     );
 
+    await logSiteActivity({
+      user_name: "System Admin",
+      action_type: "CREATE_CATEGORY",
+      module_name: "SETTINGS",
+      description: `Created ${type} category '${name.trim()}'${categoryCode ? ` (${categoryCode})` : ""}`,
+      metadata: { category_id: result.insertId, name: name.trim(), code: categoryCode, type },
+    });
+
     return NextResponse.json({
       success: true,
       message: "Category created successfully",
@@ -119,6 +128,14 @@ export async function PUT(request: NextRequest) {
     // Handle Restore Action
     if (action === "restore") {
       await commissionsDb.query("UPDATE categories SET deleted_at = NULL WHERE id = ?", [id]);
+      await logSiteActivity({
+        user_name: "System Admin",
+        action_type: "RESTORE_CATEGORY",
+        module_name: "SETTINGS",
+        description: `Restored category '${existing[0].name}' (#${id})`,
+        metadata: { category_id: id, name: existing[0].name },
+      });
+
       return NextResponse.json({
         success: true,
         message: "Category restored successfully",
@@ -151,6 +168,14 @@ export async function PUT(request: NextRequest) {
       "SELECT * FROM categories WHERE id = ?",
       [id]
     );
+
+    await logSiteActivity({
+      user_name: "System Admin",
+      action_type: "UPDATE_CATEGORY",
+      module_name: "SETTINGS",
+      description: `Updated category '${name.trim()}' (#${id})`,
+      metadata: { category_id: id, name: name.trim(), type },
+    });
 
     return NextResponse.json({
       success: true,
@@ -197,6 +222,14 @@ export async function DELETE(request: NextRequest) {
       "UPDATE categories SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?",
       [id]
     );
+
+    await logSiteActivity({
+      user_name: "System Admin",
+      action_type: "DELETE_CATEGORY",
+      module_name: "SETTINGS",
+      description: `Soft-deleted category '${existing[0].name}' (#${id})`,
+      metadata: { category_id: id, name: existing[0].name },
+    });
 
     return NextResponse.json({
       success: true,

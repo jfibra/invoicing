@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || "";
     const type = searchParams.get("type") || "";
     const status = searchParams.get("status") || "";
+    const year = searchParams.get("year") || "";
     const page = Math.max(1, Number(searchParams.get("page") || 1));
     const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit") || 10)));
     const offset = (page - 1) * limit;
@@ -93,6 +94,11 @@ export async function GET(request: NextRequest) {
     if (status) {
       whereClause += ` AND status = ?`;
       queryParams.push(status);
+    }
+
+    if (year) {
+      whereClause += ` AND YEAR(issued_date) = ?`;
+      queryParams.push(Number(year));
     }
 
     const [countRows] = await commissionsDb.query<RowDataPacket[]>(
@@ -119,7 +125,9 @@ export async function GET(request: NextRequest) {
     };
 
     const [invoices] = await commissionsDb.query<RowDataPacket[]>(
-      `SELECT * FROM generated_invoices ${whereClause} ORDER BY id DESC LIMIT ? OFFSET ?`,
+      `SELECT gi.*, 
+        (SELECT COUNT(*) FROM generated_invoice_files gif WHERE gif.invoice_id = gi.id) AS attachment_count
+       FROM generated_invoices gi ${whereClause} ORDER BY gi.id DESC LIMIT ? OFFSET ?`,
       [...queryParams, limit, offset]
     );
 
@@ -202,6 +210,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const {
+      invoice_number,
       invoice_type,
       currency,
       particular_title,
@@ -252,8 +261,13 @@ export async function PUT(request: NextRequest) {
       ? new Date(existing[0].issued_date).toISOString().slice(0, 10)
       : new Date().toISOString().slice(0, 10);
 
+    const updatedInvoiceNumber = (invoice_number && String(invoice_number).trim())
+      ? String(invoice_number).trim()
+      : existing[0]?.invoice_number;
+
     await commissionsDb.query(
       `UPDATE generated_invoices SET
+        invoice_number = ?,
         invoice_type = ?,
         currency = ?,
         particular_title = ?,
@@ -277,6 +291,7 @@ export async function PUT(request: NextRequest) {
         deductibles = ?
       WHERE id = ?`,
       [
+        updatedInvoiceNumber,
         invoice_type || "TAX_INVOICE",
         currency || "AED",
         particular_title || null,
