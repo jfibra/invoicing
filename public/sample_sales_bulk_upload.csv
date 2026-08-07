@@ -1,0 +1,5 @@
+Sale Date,Tax Type,Client Name,TRN Number,Invoice Number,Subcategory,Net Amount,VAT Amount,Gross Taxable,Total Actual,Payment Method,Remarks
+2026-08-01,VAT,Emaar Properties PJSC,10029302910001,INV-SLS-9901,Off-Plan Developer Sales,150000.00,7500.00,150000.00,157500.00,BANK_TRANSFER,Dubai Creek Harbour commission payout
+2026-08-02,VAT,DAMAC Properties UAE,10038472910002,DAMAC-SLS-2026,Secondary Resale Commission,85000.00,4250.00,85000.00,89250.00,BANK_TRANSFER,DAMAC Hills villa resale transaction
+2026-08-03,VAT,Nakheel PJSC,10048192010004,NKHL-SLS-8812,Commercial Property Sales,220000.00,11000.00,220000.00,231000.00,CHEQUE,Palm Jumeirah retail unit commission
+2026-08-04,NONVAT,Private Overseas Buyer,10059102910008,SLS-EX-9912,Zero-Rated Foreign Sale,95000.00,0.00,0.00,95000.00,BANK_TRANSFER,Exported real estate brokerage service

@@ -61,6 +61,9 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
+    const firstName = searchParams.get("firstName") || "";
+    const lastName = searchParams.get("lastName") || "";
+    const email = searchParams.get("email") || "";
     const status = searchParams.get("status") || "";
     const page = Math.max(1, Number(searchParams.get("page") || 1));
     const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit") || 10)));
@@ -69,10 +72,25 @@ export async function GET(request: NextRequest) {
     let whereClause = "WHERE 1=1";
     const queryParams: any[] = [];
 
-    if (search) {
-      whereClause += ` AND (cash_advance_code LIKE ? OR agent_name LIKE ? OR agent_code LIKE ? OR team_name LIKE ?)`;
-      const term = `%${search}%`;
-      queryParams.push(term, term, term, term);
+    if (firstName.trim()) {
+      whereClause += ` AND agent_name LIKE ?`;
+      queryParams.push(`%${firstName.trim()}%`);
+    }
+
+    if (lastName.trim()) {
+      whereClause += ` AND agent_name LIKE ?`;
+      queryParams.push(`%${lastName.trim()}%`);
+    }
+
+    if (email.trim()) {
+      whereClause += ` AND agent_email LIKE ?`;
+      queryParams.push(`%${email.trim()}%`);
+    }
+
+    if (search.trim()) {
+      whereClause += ` AND (cash_advance_code LIKE ? OR agent_name LIKE ? OR agent_code LIKE ? OR agent_email LIKE ? OR team_name LIKE ?)`;
+      const term = `%${search.trim()}%`;
+      queryParams.push(term, term, term, term, term);
     }
 
     if (status) {
@@ -152,6 +170,71 @@ export async function POST(request: NextRequest) {
     await ensureCashAdvanceTables();
 
     const body = await request.json();
+
+    // Check if bulk array upload
+    if (Array.isArray(body.items)) {
+      const items = body.items;
+      let insertedCount = 0;
+
+      for (const item of items) {
+        const advAmtNum = Number(item.advance_amount || item.amount || 0);
+        const agentName = (item.agent_name || item.completename || item.name || "General Agent").trim();
+        if (!agentName || advAmtNum <= 0) continue;
+
+        const termValNum = Math.max(1, Number(item.repayment_term_value || item.term_value || 1));
+        const termType = (item.repayment_term_type || item.term_type || "MONTHS").toUpperCase() === "WEEKS" ? "WEEKS" : "MONTHS";
+        const totalRepayNum = Number(item.total_repayment_amount) || advAmtNum;
+        const instAmtNum = Number(item.installment_amount) || (totalRepayNum / termValNum);
+
+        const startDate = item.due_start_date ? new Date(item.due_start_date) : new Date();
+        const endDate = new Date(startDate);
+        if (termType === "WEEKS") {
+          endDate.setDate(endDate.getDate() + termValNum * 7);
+        } else {
+          endDate.setMonth(endDate.getMonth() + termValNum);
+        }
+
+        const yearMonth = new Date().toISOString().slice(0, 7).replace("-", "");
+        const randomSeq = Math.floor(1000 + Math.random() * 9000);
+        const caCode = item.cash_advance_code || `CA-DXB-${yearMonth}-${randomSeq}`;
+
+        const formattedStartDate = startDate.toISOString().slice(0, 10);
+        const formattedEndDate = endDate.toISOString().slice(0, 10);
+
+        await commissionsDb.query(`
+          INSERT INTO cash_advances 
+          (cash_advance_code, member_id, agent_code, agent_name, agent_email, team_name, subteam_name, advance_amount, currency, repayment_term_type, repayment_term_value, total_repayment_amount, installment_amount, due_start_date, due_end_date, total_paid_amount, balance_due, status, remarks)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0.00, ?, 'ACTIVE', ?)
+        `, [
+          caCode,
+          item.member_id || null,
+          item.agent_code || null,
+          agentName,
+          item.agent_email || null,
+          item.team_name || null,
+          item.subteam_name || null,
+          advAmtNum,
+          item.currency || "AED",
+          termType,
+          termValNum,
+          totalRepayNum,
+          instAmtNum,
+          formattedStartDate,
+          formattedEndDate,
+          totalRepayNum,
+          item.remarks || null,
+        ]);
+
+        insertedCount++;
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Successfully uploaded and issued ${insertedCount} cash advance entries!`,
+        inserted_count: insertedCount,
+      });
+    }
+
     const {
       member_id,
       agent_code,
@@ -267,8 +350,8 @@ export async function POST(request: NextRequest) {
       user_agent: userAgent,
     });
 
-    return NextResponse.json({
-      success: true,
+    const caRecord = {
+      id: result.insertId,
       cash_advance_id: result.insertId,
       cash_advance_code: caCode,
       advance_amount: advAmtNum,
@@ -282,6 +365,12 @@ export async function POST(request: NextRequest) {
       balance_due: totalRepayNum,
       status: "ACTIVE",
       profile_snapshot: profileSnapshot,
+    };
+
+    return NextResponse.json({
+      success: true,
+      cash_advance: caRecord,
+      ...caRecord,
     });
   } catch (error: any) {
     console.error("POST Cash Advance Error:", error);

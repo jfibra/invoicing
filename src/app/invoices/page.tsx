@@ -79,6 +79,40 @@ interface InvoiceTypeOption {
   sort_order: number;
 }
 
+
+const BigBackIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" className="w-10 h-10">
+    <circle cx="32" cy="32" r="26" fill="#DC2626" />
+    <path d="M36 20L24 32L36 44" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IssueCommissionKioskIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" className="w-16 h-16 sm:w-20 sm:h-20">
+    <rect x="6" y="6" width="52" height="52" rx="14" fill="#DC2626" />
+    <rect x="18" y="16" width="28" height="32" rx="4" fill="#FFFFFF" opacity="0.95" />
+    <circle cx="28" cy="28" r="7" fill="#FDE047" stroke="#DC2626" strokeWidth="1.5" />
+    <text x="28" y="32" textAnchor="middle" fill="#713F12" fontSize="9" fontWeight="900" fontFamily="sans-serif">%</text>
+    <path d="M24 38H40M24 42H34" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round" />
+  </svg>
+);
+
+const TrackerKioskIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" className="w-16 h-16 sm:w-20 sm:h-20">
+    <rect x="6" y="6" width="52" height="52" rx="14" fill="#2563EB" />
+    <rect x="18" y="20" width="28" height="24" rx="4" fill="#FFFFFF" opacity="0.9" />
+    <path d="M24 28H40M24 34H34" stroke="#1D4ED8" strokeWidth="3" strokeLinecap="round" />
+  </svg>
+);
+
+const BulkBatchKioskIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" className="w-16 h-16 sm:w-20 sm:h-20">
+    <rect x="6" y="6" width="52" height="52" rx="14" fill="#059669" />
+    <path d="M32 18V38M32 18L24 26M32 18L40 26" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M20 44H44" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" />
+  </svg>
+);
+
 export default function CommissionInvoicesPage() {
   return (
     <Suspense
@@ -96,7 +130,7 @@ export default function CommissionInvoicesPage() {
 
 function CommissionInvoicesContent() {
   const searchParams = useSearchParams();
-  const [activeMainTab, setActiveMainTab] = useState<"issue" | "history" | "batch">("issue");
+  const [viewMode, setViewMode] = useState<"MENU" | "ISSUE" | "HISTORY" | "BATCH">("MENU");
 
   // CSV Batch Upload State
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -188,7 +222,7 @@ function CommissionInvoicesContent() {
       setSuccessMsg(`Successfully generated ${data.created_count} batch invoices! Redirecting to Invoice Tracker...`);
       setCsvFile(null);
       setCsvParsedRows([]);
-      setActiveMainTab("history");
+      setViewMode("HISTORY");
       fetchInvoiceHistory();
     } catch (err: any) {
       alert(`Batch Processing Error: ${err.message}`);
@@ -524,10 +558,10 @@ function CommissionInvoicesContent() {
   }, [historySearch, historyType, historyStatus, historyYear, historyPage]);
 
   useEffect(() => {
-    if (activeMainTab === "history") {
+    if (viewMode === "HISTORY") {
       fetchInvoiceHistory();
     }
-  }, [activeMainTab, fetchInvoiceHistory]);
+  }, [viewMode, fetchInvoiceHistory]);
 
   // Auto-calculate Net Amount (Issuance)
   const handleCalcProjectCommission = (projVal: string, commRec: string, rate: string) => {
@@ -1108,92 +1142,121 @@ function CommissionInvoicesContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
-      {/* Header Navigation */}
-      <HeaderNav
-        onRefresh={() => {
-          if (activeMainTab === "issue") fetchMembers();
-          else fetchInvoiceHistory();
-        }}
-        loadingRefresh={loading || historyLoading}
-      />
-
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 lg:p-12 space-y-6">
-        {/* Banner Header */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <FilePlus className="w-6 h-6 text-red-600" />
-              Dubai Commission Invoices Manager
-            </h1>
-            <p className="text-xs text-slate-500 mt-1">
-              Issue agent invoices, compute splits from Commission Received or Deal Value, add buyer details, deductibles, optional VAT, and track DB history.
-            </p>
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-red-600 selection:text-white">
+      {/* Top Bar */}
+      <div className="w-full bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {viewMode === "MENU" ? (
+              <Link href="/dashboard" className="group flex items-center gap-2 px-4 py-2 rounded-xl bg-white border-2 border-slate-200 hover:border-red-400 hover:bg-red-50 text-slate-600 hover:text-red-600 font-bold text-xs transition-all shadow-[0_3px_0_0_#E2E8F0] active:shadow-none active:translate-y-0.5 cursor-pointer">
+                <BigBackIcon />
+                <span>Dashboard</span>
+              </Link>
+            ) : (
+              <button onClick={() => setViewMode("MENU")} className="group flex items-center gap-2 px-4 py-2 rounded-xl bg-white border-2 border-slate-200 hover:border-red-400 hover:bg-red-50 text-slate-600 hover:text-red-600 font-bold text-xs transition-all shadow-[0_3px_0_0_#E2E8F0] active:shadow-none active:translate-y-0.5 cursor-pointer">
+                <BigBackIcon />
+                <span>← Kiosk Hub</span>
+              </button>
+            )}
+            <Image src="/fhi.png" alt="Filipino Homes" width={160} height={44} className="object-contain h-10 w-auto hidden sm:block" priority />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Link
               href="/invoices/cash-advances"
-              className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-xs"
+              className="px-4 py-2 rounded-xl bg-white border-2 border-slate-200 hover:border-amber-400 hover:bg-amber-50 text-slate-600 hover:text-amber-600 font-bold text-xs transition-all shadow-[0_3px_0_0_#E2E8F0] active:shadow-none active:translate-y-0.5 flex items-center gap-2 cursor-pointer"
             >
-              <Coins className="w-4 h-4" />
-              Agent Cash Advances
+              <Coins className="w-3.5 h-3.5" />
+              <span>Cash Advances</span>
             </Link>
-            <Link
-              href="/invoices/profile"
-              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center gap-2"
-            >
-              <Building className="w-4 h-4" />
-              Admin Invoice Settings
-            </Link>
+
+            <span className="px-3.5 py-1.5 rounded-full bg-slate-100 border border-slate-200 font-extrabold text-[10px] text-slate-700 uppercase tracking-wider flex items-center gap-2">
+              <FilePlus className="w-3.5 h-3.5 text-slate-500" />
+              Commissions Hub
+            </span>
           </div>
         </div>
+      </div>
 
-        {/* Main Section Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
-          <button
-            type="button"
-            onClick={() => setActiveMainTab("issue")}
-            className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeMainTab === "issue"
-                ? "bg-red-600 text-white shadow-md ring-2 ring-red-600/30"
-                : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
-            }`}
-          >
-            <FilePlus className="w-4 h-4" />
-            <span>1. Issue New Commission Invoice</span>
-          </button>
+      <main className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-10 flex flex-col justify-center gap-8">
+        {/* ========================================================= */}
+        {/* VIEW MODE 1: KIOSK MAIN MENU TILES */}
+        {/* ========================================================= */}
+        {viewMode === "MENU" && (
+          <div className="space-y-8 py-4">
+            <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-[0_6px_0_0_#E2E8F0] space-y-2 relative overflow-hidden">
+              <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-red-600 rounded-l-3xl" />
+              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+                Commission Invoices Portal
+              </h1>
+              <p className="text-sm text-slate-500 font-medium">
+                Select an action below to issue new agent commission invoices, inspect database ledgers, or upload bulk batch CSV entries.
+              </p>
+            </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              setActiveMainTab("history");
-              fetchInvoiceHistory();
-            }}
-            className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeMainTab === "history"
-                ? "bg-slate-900 text-white shadow-md ring-2 ring-slate-900/30"
-                : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
-            }`}
-          >
-            <History className="w-4 h-4" />
-            <span>2. Invoice Tracker & Database History ({historyPagination.total || 0})</span>
-          </button>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-5xl mx-auto w-full">
+              {/* Kiosk Tile 1: Issue Commission Invoice */}
+              <button
+                onClick={() => setViewMode("ISSUE")}
+                className="group bg-white border-2 border-slate-200 hover:border-red-500 rounded-3xl p-8 sm:p-10 flex flex-col items-center justify-center text-center transition-all duration-150 shadow-[0_8px_0_0_#CBD5E1] hover:shadow-[0_12px_0_0_#94A3B8] hover:-translate-y-1 active:translate-y-1.5 active:shadow-[0_2px_0_0_#CBD5E1] cursor-pointer"
+              >
+                <div className="mb-6 transform transition-transform duration-200 group-hover:scale-110">
+                  <IssueCommissionKioskIcon />
+                </div>
+                <h2 className="text-2xl font-black text-slate-900 mb-2 group-hover:text-slate-700 transition-colors">
+                  Issue Invoice
+                </h2>
+                <p className="text-xs text-slate-500 font-semibold max-w-xs leading-relaxed mb-6">
+                  Issue agent commission invoice with split calculations, deductibles & VAT.
+                </p>
+                <div className="px-5 py-2 rounded-full border-2 border-red-200 bg-red-50 text-red-700 font-black text-xs uppercase tracking-wider shadow-xs">
+                  Issue New →
+                </div>
+              </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveMainTab("batch")}
-            className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeMainTab === "batch"
-                ? "bg-emerald-600 text-white shadow-md ring-2 ring-emerald-600/30"
-                : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
-            }`}
-          >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-            <span>3. Bulk CSV Batch Upload & Generator</span>
-          </button>
-        </div>
+              {/* Kiosk Tile 2: Invoice History Ledger */}
+              <button
+                onClick={() => {
+                  setViewMode("HISTORY");
+                  fetchInvoiceHistory();
+                }}
+                className="group bg-white border-2 border-slate-200 hover:border-blue-500 rounded-3xl p-8 sm:p-10 flex flex-col items-center justify-center text-center transition-all duration-150 shadow-[0_8px_0_0_#CBD5E1] hover:shadow-[0_12px_0_0_#94A3B8] hover:-translate-y-1 active:translate-y-1.5 active:shadow-[0_2px_0_0_#CBD5E1] cursor-pointer"
+              >
+                <div className="mb-6 transform transition-transform duration-200 group-hover:scale-110">
+                  <TrackerKioskIcon />
+                </div>
+                <h2 className="text-2xl font-black text-slate-900 mb-2 group-hover:text-slate-700 transition-colors">
+                  Invoice History
+                </h2>
+                <p className="text-xs text-slate-500 font-semibold max-w-xs leading-relaxed mb-6">
+                  Search, view PDF invoices, inspect database records & track payouts.
+                </p>
+                <div className="px-5 py-2 rounded-full border-2 border-blue-200 bg-blue-50 text-blue-700 font-black text-xs uppercase tracking-wider shadow-xs">
+                  Open Ledger →
+                </div>
+              </button>
+
+              {/* Kiosk Tile 3: Bulk Batch Uploader */}
+              <button
+                onClick={() => setViewMode("BATCH")}
+                className="group bg-white border-2 border-slate-200 hover:border-emerald-500 rounded-3xl p-8 sm:p-10 flex flex-col items-center justify-center text-center transition-all duration-150 shadow-[0_8px_0_0_#CBD5E1] hover:shadow-[0_12px_0_0_#94A3B8] hover:-translate-y-1 active:translate-y-1.5 active:shadow-[0_2px_0_0_#CBD5E1] cursor-pointer"
+              >
+                <div className="mb-6 transform transition-transform duration-200 group-hover:scale-110">
+                  <BulkBatchKioskIcon />
+                </div>
+                <h2 className="text-2xl font-black text-slate-900 mb-2 group-hover:text-slate-700 transition-colors">
+                  Bulk Batch Upload
+                </h2>
+                <p className="text-xs text-slate-500 font-semibold max-w-xs leading-relaxed mb-6">
+                  Batch upload spreadsheet commission invoice entries via CSV.
+                </p>
+                <div className="px-5 py-2 rounded-full border-2 border-emerald-200 bg-emerald-50 text-emerald-700 font-black text-xs uppercase tracking-wider shadow-xs">
+                  Batch Upload →
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Success Alert */}
         {successMsg && (
@@ -1211,10 +1274,10 @@ function CommissionInvoicesContent() {
         {/* ========================================================= */}
         {/* TAB 1: ISSUE NEW INVOICE (MEMBER ROSTER LIST) */}
         {/* ========================================================= */}
-        {activeMainTab === "issue" && (
+        {viewMode === "ISSUE" && (
           <div className="space-y-6">
             {/* Search Filters */}
-            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-[0_6px_0_0_#E2E8F0] space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
                   Search & Filter Agent Roster
@@ -1385,7 +1448,7 @@ function CommissionInvoicesContent() {
         {/* ========================================================= */}
         {/* TAB 2: INVOICE TRACKER & SAVED DATABASE HISTORY */}
         {/* ========================================================= */}
-        {activeMainTab === "history" && (
+        {viewMode === "HISTORY" && (
           <div className="space-y-6">
             {/* Summary KPI Overview Header */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -1441,7 +1504,7 @@ function CommissionInvoicesContent() {
             </div>
 
             {/* Tracker Search & Filter Bar */}
-            <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-[0_6px_0_0_#E2E8F0] space-y-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
                   Search & Filter Saved Invoice Records
@@ -1831,7 +1894,7 @@ function CommissionInvoicesContent() {
         {/* ========================================================= */}
         {/* TAB 3: BULK CSV BATCH UPLOADER & GENERATOR */}
         {/* ========================================================= */}
-        {activeMainTab === "batch" && (
+        {viewMode === "BATCH" && (
           <div className="space-y-6">
             {/* Header Info & Template Download */}
             <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -2126,7 +2189,7 @@ function CommissionInvoicesContent() {
                           }}
                           className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer ${
                             isSelected
-                              ? "bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-600/30"
+                              ? "bg-red-600 text-white border-red-600 shadow-[0_3px_0_0_#991B1B]"
                               : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
                           }`}
                         >
@@ -2147,7 +2210,7 @@ function CommissionInvoicesContent() {
                       onClick={() => setSelectedInvoiceType("TAX_INVOICE")}
                       className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer ${
                         selectedInvoiceType === "TAX_INVOICE"
-                          ? "bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-600/30"
+                          ? "bg-red-600 text-white border-red-600 shadow-[0_3px_0_0_#991B1B]"
                           : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
                       }`}
                     >
@@ -2163,7 +2226,7 @@ function CommissionInvoicesContent() {
                       onClick={() => setSelectedInvoiceType("AGENT_PAYOUT")}
                       className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer ${
                         selectedInvoiceType === "AGENT_PAYOUT"
-                          ? "bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-600/30"
+                          ? "bg-red-600 text-white border-red-600 shadow-[0_3px_0_0_#991B1B]"
                           : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
                       }`}
                     >
@@ -2179,7 +2242,7 @@ function CommissionInvoicesContent() {
                       onClick={() => setSelectedInvoiceType("PARTIAL_TRANCHE")}
                       className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer ${
                         selectedInvoiceType === "PARTIAL_TRANCHE"
-                          ? "bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-600/30"
+                          ? "bg-red-600 text-white border-red-600 shadow-[0_3px_0_0_#991B1B]"
                           : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
                       }`}
                     >
@@ -2195,7 +2258,7 @@ function CommissionInvoicesContent() {
                       onClick={() => setSelectedInvoiceType("PROFORMA")}
                       className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between space-y-2 cursor-pointer ${
                         selectedInvoiceType === "PROFORMA"
-                          ? "bg-red-600 text-white border-red-600 shadow-md ring-2 ring-red-600/30"
+                          ? "bg-red-600 text-white border-red-600 shadow-[0_3px_0_0_#991B1B]"
                           : "bg-slate-50 hover:bg-slate-100 text-slate-800 border-slate-200"
                       }`}
                     >

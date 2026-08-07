@@ -1,0 +1,674 @@
+[
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Commercial Office Rent",
+    "description": "VAT-registered landlord charging 5%"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Office Furniture",
+    "description": "Desks, chairs, cabinets, shelves, partitions"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Stationery & Supplies",
+    "description": "Paper, pens, folders, binders, notebooks, sticky notes"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Printers & Scanners",
+    "description": "Purchase or lease of office printing equipment"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Toner & Ink Cartridges",
+    "description": "Consumables for printers and copiers"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Cleaning Services",
+    "description": "Office cleaning and janitorial services"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Security Services",
+    "description": "Office building security guard services"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Office Maintenance & Repairs",
+    "description": "Minor repairs, painting, plumbing, electrical"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "DEWA - Electricity",
+    "description": "Commercial electricity bills"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "DEWA - Water",
+    "description": "Commercial water bills"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Empower / District Cooling",
+    "description": "Commercial cooling charges"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Internet (du / Etisalat)",
+    "description": "Business internet connection"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Telephone Lines",
+    "description": "Business landline and fax"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Mobile Phones (Business)",
+    "description": "Company mobile lines and plans"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Postal & Courier Services",
+    "description": "Aramex, DHL, FedEx, Emirates Post"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "PO Box Rental",
+    "description": "OFFICE & ADMINISTRATIVE"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "IT & SOFTWARE",
+    "subcategory_name": "Computers & Laptops",
+    "description": "Purchase of desktops, laptops for staff"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "IT & SOFTWARE",
+    "subcategory_name": "Servers & Networking",
+    "description": "Switches, routers, cables, servers"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "IT & SOFTWARE",
+    "subcategory_name": "Business Software Licenses",
+    "description": "CRM, accounting, ERP software licenses"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "IT & SOFTWARE",
+    "subcategory_name": "Cloud Hosting",
+    "description": "AWS, Azure, Google Cloud services"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "IT & SOFTWARE",
+    "subcategory_name": "SaaS Subscriptions",
+    "description": "Microsoft 365, Google Workspace, Slack, Zoom"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "IT & SOFTWARE",
+    "subcategory_name": "Website Domain & Hosting",
+    "description": "Domain registration, SSL, web hosting"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "IT & SOFTWARE",
+    "subcategory_name": "Antivirus & Cybersecurity",
+    "description": "Security software and services"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "IT & SOFTWARE",
+    "subcategory_name": "IT Support & Maintenance",
+    "description": "External IT support contracts"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "IT & SOFTWARE",
+    "subcategory_name": "Data Storage & Backup",
+    "description": "OFFICE & ADMINISTRATIVE"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "PROFESSIONAL SERVICES",
+    "subcategory_name": "External Audit Fees",
+    "description": "Annual statutory audit fees"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "PROFESSIONAL SERVICES",
+    "subcategory_name": "Accounting & Bookkeeping",
+    "description": "Outsourced accounting services"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "PROFESSIONAL SERVICES",
+    "subcategory_name": "Legal Consultation",
+    "description": "Legal retainer and advisory fees"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "PROFESSIONAL SERVICES",
+    "subcategory_name": "Tax & VAT Advisory",
+    "description": "Tax agent fees, VAT return filing services"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "PROFESSIONAL SERVICES",
+    "subcategory_name": "Management Consulting",
+    "description": "Strategy and operational consulting"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "PROFESSIONAL SERVICES",
+    "subcategory_name": "HR & Recruitment Agency",
+    "description": "Recruitment agency placement fees"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "PROFESSIONAL SERVICES",
+    "subcategory_name": "Employee Training",
+    "description": "Training courses and certifications"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "PROFESSIONAL SERVICES",
+    "subcategory_name": "Translation Services",
+    "description": "Legal and business translation"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "PROFESSIONAL SERVICES",
+    "subcategory_name": "Engineering / Architecture",
+    "description": "OFFICE & ADMINISTRATIVE"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "MARKETING & ADVERTISING",
+    "subcategory_name": "Digital Advertising",
+    "description": "Google Ads, Facebook Ads, LinkedIn Ads"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "MARKETING & ADVERTISING",
+    "subcategory_name": "Social Media Management",
+    "description": "Social media management tools and services"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "MARKETING & ADVERTISING",
+    "subcategory_name": "Print Advertising",
+    "description": "Newspapers, magazines, billboards"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "MARKETING & ADVERTISING",
+    "subcategory_name": "Brochures & Flyers",
+    "description": "Promotional materials printing"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "MARKETING & ADVERTISING",
+    "subcategory_name": "Event & Exhibition Costs",
+    "description": "Trade show booth, exhibition participation"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "MARKETING & ADVERTISING",
+    "subcategory_name": "Sponsorship Fees",
+    "description": "Business-related event sponsorships"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "MARKETING & ADVERTISING",
+    "subcategory_name": "Photography & Videography",
+    "description": "Professional photo/video for business"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "MARKETING & ADVERTISING",
+    "subcategory_name": "Branding & Design",
+    "description": "Logo, brand identity, graphic design services"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "MARKETING & ADVERTISING",
+    "subcategory_name": "PR & Communications",
+    "description": "Public relations and media outreach"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "MARKETING & ADVERTISING",
+    "subcategory_name": "Website Development & SEO",
+    "description": "OFFICE & ADMINISTRATIVE"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "TRAVEL & TRANSPORTATION",
+    "subcategory_name": "Business Flights",
+    "description": "Air tickets for business travel"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "TRAVEL & TRANSPORTATION",
+    "subcategory_name": "Hotel Stays (Business)",
+    "description": "Accommodation during business trips"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "TRAVEL & TRANSPORTATION",
+    "subcategory_name": "Taxi & Ride-hailing",
+    "description": "Careem, Uber for business purposes"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "TRAVEL & TRANSPORTATION",
+    "subcategory_name": "Car Rental (Business)",
+    "description": "Short-term vehicle rental for business"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "TRAVEL & TRANSPORTATION",
+    "subcategory_name": "Petrol / Fuel",
+    "description": "Fuel for company-registered vehicles only"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "TRAVEL & TRANSPORTATION",
+    "subcategory_name": "Airport Parking",
+    "description": "Parking fees during business travel"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "TRAVEL & TRANSPORTATION",
+    "subcategory_name": "Conference Registration",
+    "description": "OFFICE & ADMINISTRATIVE"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "EMPLOYEE-RELATED (RECOVERABLE)",
+    "subcategory_name": "Employee Visa Fees",
+    "description": "Visa processing and typing center fees"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "EMPLOYEE-RELATED (RECOVERABLE)",
+    "subcategory_name": "Medical Insurance (Mandatory)",
+    "description": "Mandatory employee health insurance (Dubai Law 11/2013)"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "EMPLOYEE-RELATED (RECOVERABLE)",
+    "subcategory_name": "Staff Accommodation",
+    "description": "If contractually obligated in employment contract"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "EMPLOYEE-RELATED (RECOVERABLE)",
+    "subcategory_name": "Employee Conveyance",
+    "description": "Transport to/from office per employment contract"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "EMPLOYEE-RELATED (RECOVERABLE)",
+    "subcategory_name": "Work Uniforms & PPE",
+    "description": "Uniforms and protective equipment for staff"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "EMPLOYEE-RELATED (RECOVERABLE)",
+    "subcategory_name": "Training & Certifications",
+    "description": "Professional development courses for employees"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "EMPLOYEE-RELATED (RECOVERABLE)",
+    "subcategory_name": "Recruitment & Background Checks",
+    "description": "OFFICE & ADMINISTRATIVE"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "CAPITAL EXPENDITURE",
+    "subcategory_name": "Machinery & Equipment",
+    "description": "Purchase of business machinery"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "CAPITAL EXPENDITURE",
+    "subcategory_name": "Office Fit-Out & Renovation",
+    "description": "Interior fit-out for commercial office"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "CAPITAL EXPENDITURE",
+    "subcategory_name": "Business Vehicles (Excl. Personal)",
+    "description": "Delivery vans, fleet vehicles (not passenger cars)"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "CAPITAL EXPENDITURE",
+    "subcategory_name": "Commercial Property Purchase",
+    "description": "OFFICE & ADMINISTRATIVE"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "FINANCIAL & INSURANCE",
+    "subcategory_name": "Bank Charges (VAT-bearing)",
+    "description": "Account maintenance fees where VAT is charged"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "FINANCIAL & INSURANCE",
+    "subcategory_name": "Loan Arrangement Fees (VAT)",
+    "description": "Processing fees with VAT component"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "FINANCIAL & INSURANCE",
+    "subcategory_name": "Equipment Insurance",
+    "description": "Insurance for machinery and equipment"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "FINANCIAL & INSURANCE",
+    "subcategory_name": "Building & Property Insurance",
+    "description": "Commercial property insurance premiums"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "FINANCIAL & INSURANCE",
+    "subcategory_name": "Professional Indemnity Insurance",
+    "description": "OFFICE & ADMINISTRATIVE"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "IMPORT & REVERSE CHARGE",
+    "subcategory_name": "Import VAT on Goods",
+    "description": "VAT paid at customs on imported goods"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "IMPORT & REVERSE CHARGE",
+    "subcategory_name": "Import VAT on Services",
+    "description": "Reverse charge VAT on imported services (net zero)"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "IMPORT & REVERSE CHARGE",
+    "subcategory_name": "Customs Duty (Note)",
+    "description": "OFFICE & ADMINISTRATIVE"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "FOOD & REFRESHMENTS (LIMITED)",
+    "subcategory_name": "Meeting Refreshments",
+    "description": "Tea, coffee, water during business meetings"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "FOOD & REFRESHMENTS (LIMITED)",
+    "subcategory_name": "Working Lunch (In-Meeting)",
+    "description": "Non-extravagant lunch during business meeting"
+  },
+  {
+    "vat_treatment": "Recoverable",
+    "category_name": "FOOD & REFRESHMENTS (LIMITED)",
+    "subcategory_name": "Office Catering (Meetings)",
+    "description": "OFFICE & ADMINISTRATIVE"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "ENTERTAINMENT",
+    "subcategory_name": "Client Dinners & Lunches",
+    "description": "Social/entertainment meals with clients"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "ENTERTAINMENT",
+    "subcategory_name": "Client Hotel Stays",
+    "description": "Accommodation for client entertainment"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "ENTERTAINMENT",
+    "subcategory_name": "Event & Show Tickets",
+    "description": "Concerts, shows, sporting events for clients"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "ENTERTAINMENT",
+    "subcategory_name": "Leisure Trips & Excursions",
+    "description": "Trips provided for pleasure/entertainment"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "ENTERTAINMENT",
+    "subcategory_name": "Gifts & Giveaways",
+    "description": "Gifts to clients, suppliers, non-employees"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "ENTERTAINMENT",
+    "subcategory_name": "Free Samples",
+    "description": "Free product samples distributed"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "ENTERTAINMENT",
+    "subcategory_name": "Staff Holiday Parties",
+    "description": "Seasonal parties and celebrations"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "ENTERTAINMENT",
+    "subcategory_name": "Team Building (Social)",
+    "description": "OFFICE & ADMINISTRATIVE"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "MOTOR VEHICLES (PERSONAL USE)",
+    "subcategory_name": "Car Purchase (Personal Use)",
+    "description": "Vehicles available for personal use"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "MOTOR VEHICLES (PERSONAL USE)",
+    "subcategory_name": "Car Lease (Personal Use)",
+    "description": "Lease/rental of vehicles for personal use"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "MOTOR VEHICLES (PERSONAL USE)",
+    "subcategory_name": "Fuel (Personal Use)",
+    "description": "Petrol for personal vehicle use"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "MOTOR VEHICLES (PERSONAL USE)",
+    "subcategory_name": "Insurance (Personal Vehicle)",
+    "description": "OFFICE & ADMINISTRATIVE"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "PERSONAL & NON-BUSINESS",
+    "subcategory_name": "Owner's Personal Expenses",
+    "description": "Personal costs charged to business"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "PERSONAL & NON-BUSINESS",
+    "subcategory_name": "Personal Phone Bills",
+    "description": "Non-business mobile/landline charges"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "PERSONAL & NON-BUSINESS",
+    "subcategory_name": "Personal Travel",
+    "description": "Non-business trips and holidays"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "PERSONAL & NON-BUSINESS",
+    "subcategory_name": "Personal Groceries",
+    "description": "Personal food and household items"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "PERSONAL & NON-BUSINESS",
+    "subcategory_name": "School Fees (Owner's Children)",
+    "description": "OFFICE & ADMINISTRATIVE"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "EXEMPT SUPPLY-RELATED",
+    "subcategory_name": "Residential Property Rent",
+    "description": "Rent for residential property"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "EXEMPT SUPPLY-RELATED",
+    "subcategory_name": "Bare Land Purchase",
+    "description": "Purchase of undeveloped land without buildings"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "EXEMPT SUPPLY-RELATED",
+    "subcategory_name": "Local Passenger Transport",
+    "description": "Taxi, bus, metro for local transport"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "EXEMPT SUPPLY-RELATED",
+    "subcategory_name": "Certain Financial Services",
+    "description": "Margin-based financial services"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "EXEMPT SUPPLY-RELATED",
+    "subcategory_name": "Life Insurance Premiums",
+    "description": "OFFICE & ADMINISTRATIVE"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "OTHER NON-RECOVERABLE",
+    "subcategory_name": "Fines & Penalties",
+    "description": "Traffic fines, regulatory penalties"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "OTHER NON-RECOVERABLE",
+    "subcategory_name": "Donations (Non-Qualifying)",
+    "description": "Donations to non-qualifying public benefit entities"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "OTHER NON-RECOVERABLE",
+    "subcategory_name": "Expenses Without Tax Invoice",
+    "description": "Purchases without valid tax invoice"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "OTHER NON-RECOVERABLE",
+    "subcategory_name": "Dependent Medical Insurance",
+    "description": "Voluntary coverage for employee family members"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "OTHER NON-RECOVERABLE",
+    "subcategory_name": "Entertainment for Shareholders",
+    "description": "Hospitality for shareholders or investors"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "OTHER NON-RECOVERABLE",
+    "subcategory_name": "Recoverable Input VAT (as cost)",
+    "description": "VAT already recovered cannot be claimed as expense"
+  },
+  {
+    "vat_treatment": "Blocked",
+    "category_name": "OTHER NON-RECOVERABLE",
+    "subcategory_name": "Corporate Tax Payments",
+    "description": "OFFICE & ADMINISTRATIVE"
+  },
+  {
+    "vat_treatment": "Mixed-Use",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Mobile Phone (Personal + Business)",
+    "description": "Company mobile used for both personal and business"
+  },
+  {
+    "vat_treatment": "Mixed-Use",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Vehicle (Personal + Business)",
+    "description": "Company car used for personal trips too"
+  },
+  {
+    "vat_treatment": "Mixed-Use",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Internet (Home Office)",
+    "description": "Home internet used partially for business"
+  },
+  {
+    "vat_treatment": "Mixed-Use",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Laptop / Computer (Mixed)",
+    "description": "Device used for both personal and business"
+  },
+  {
+    "vat_treatment": "Mixed-Use",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Utilities (Home Office)",
+    "description": "Home DEWA bills partially for business"
+  },
+  {
+    "vat_treatment": "Mixed-Use",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Rent (Dual-Purpose Space)",
+    "description": "Space used for both taxable and exempt activities"
+  },
+  {
+    "vat_treatment": "Mixed-Use",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Insurance (Mixed Policies)",
+    "description": "Policy covering both business and personal items"
+  },
+  {
+    "vat_treatment": "Mixed-Use",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Software (Mixed Use)",
+    "description": "Software license used partially for personal projects"
+  },
+  {
+    "vat_treatment": "Mixed-Use",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "Professional Fees (Mixed)",
+    "description": "Consulting fees relating to both taxable and exempt supplies"
+  },
+  {
+    "vat_treatment": "Mixed-Use",
+    "category_name": "OFFICE & ADMINISTRATIVE",
+    "subcategory_name": "General Overheads (Mixed)",
+    "description": "OFFICE & ADMINISTRATIVE"
+  }
+]

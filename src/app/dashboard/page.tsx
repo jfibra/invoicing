@@ -4,35 +4,8 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import HeaderNav from "@/components/HeaderNav";
-import {
-  LogOut,
-  User,
-  Shield,
-  Building,
-  Users,
-  FileText,
-  DollarSign,
-  TrendingUp,
-  Briefcase,
-  Layers,
-  ChevronRight,
-  CheckCircle2,
-  Calendar,
-  Search,
-  LayoutDashboard,
-  FilePlus,
-  Settings,
-  History,
-  Eye,
-  Sparkles,
-  ArrowUpRight,
-  Award,
-  Receipt,
-  Loader2,
-  RefreshCw,
-  Coins,
-} from "lucide-react";
+import PageLoader from "@/components/PageLoader";
+import { LogOut, Users, Layers } from "lucide-react";
 
 interface AuthUser {
   id: number;
@@ -48,617 +21,217 @@ interface AuthUser {
   isSubteamLeader: boolean;
 }
 
+// Solid-fill SVG Icons (no gradients)
+const SalesIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" className="w-16 h-16 sm:w-20 sm:h-20">
+    <rect x="6" y="6" width="52" height="52" rx="14" fill="#2563EB" />
+    <rect x="17" y="32" width="7" height="12" rx="2" fill="#93C5FD" opacity="0.7" />
+    <rect x="28" y="24" width="7" height="20" rx="2" fill="#93C5FD" opacity="0.9" />
+    <rect x="39" y="16" width="7" height="28" rx="2" fill="white" />
+    <path d="M18 28L28 20L36 24L46 14" stroke="#FDE047" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M40 14H46V20" stroke="#FDE047" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const ExpensesIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" className="w-16 h-16 sm:w-20 sm:h-20">
+    <rect x="6" y="6" width="52" height="52" rx="14" fill="#DC2626" />
+    <rect x="18" y="16" width="28" height="32" rx="4" fill="white" opacity="0.95" />
+    <path d="M24 24H40" stroke="#DC2626" strokeWidth="3" strokeLinecap="round" />
+    <path d="M24 30H36" stroke="#F87171" strokeWidth="3" strokeLinecap="round" />
+    <path d="M24 36H32" stroke="#F87171" strokeWidth="3" strokeLinecap="round" />
+    <circle cx="40" cy="38" r="9" fill="#FEF08A" stroke="#CA8A04" strokeWidth="2" />
+    <path d="M40 33.5V42.5M37.5 36H42.5" stroke="#854D0E" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const TrnLibraryIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" className="w-16 h-16 sm:w-20 sm:h-20">
+    <rect x="6" y="6" width="52" height="52" rx="14" fill="#0891B2" />
+    <path d="M16 20C16 18.3431 17.3431 17 19 17H29L33 21H45C46.6569 21 48 22.3431 48 24V43C48 44.6569 46.6569 46 45 46H19C17.3431 46 16 44.6569 16 43V20Z" fill="white" opacity="0.9" />
+    <rect x="22" y="27" width="20" height="13" rx="2" fill="#E0F2FE" stroke="#0284C7" strokeWidth="2" />
+    <path d="M26 31H38M26 36H34" stroke="#0369A1" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const CommissionsIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" className="w-16 h-16 sm:w-20 sm:h-20">
+    <rect x="6" y="6" width="52" height="52" rx="14" fill="#059669" />
+    <circle cx="28" cy="28" r="12" fill="#FDE047" stroke="white" strokeWidth="2" />
+    <text x="28" y="33" textAnchor="middle" fill="#713F12" fontSize="13" fontWeight="900" fontFamily="sans-serif">%</text>
+    <circle cx="40" cy="38" r="11" fill="#FDE047" stroke="white" strokeWidth="2" />
+    <text x="40" y="43" textAnchor="middle" fill="#713F12" fontSize="13" fontWeight="900" fontFamily="sans-serif">$</text>
+    <path d="M16 46C20 40 28 42 34 38" stroke="#A7F3D0" strokeWidth="3" strokeLinecap="round" />
+  </svg>
+);
+
+const CashAdvancesIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" className="w-16 h-16 sm:w-20 sm:h-20">
+    <rect x="6" y="6" width="52" height="52" rx="14" fill="#D97706" />
+    <rect x="16" y="24" width="32" height="20" rx="4" fill="white" />
+    <circle cx="32" cy="34" r="5" fill="#D97706" />
+    <path d="M20 28H24M40 40H44" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round" />
+    <path d="M32 14L38 20H26L32 14Z" fill="#FEF08A" stroke="white" strokeWidth="1.5" />
+  </svg>
+);
+
+const InvoiceProfileIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" className="w-16 h-16 sm:w-20 sm:h-20">
+    <rect x="6" y="6" width="52" height="52" rx="14" fill="#7C3AED" />
+    <rect x="18" y="16" width="28" height="32" rx="5" fill="white" />
+    <circle cx="32" cy="27" r="5" fill="#7C3AED" />
+    <path d="M24 40C24 36 27.5 35 32 35C36.5 35 40 36 40 40" stroke="#7C3AED" strokeWidth="2.5" strokeLinecap="round" />
+    <path d="M22 20H26" stroke="#DDD6FE" strokeWidth="2" strokeLinecap="round" />
+  </svg>
+);
+
+const SettingsIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" className="w-16 h-16 sm:w-20 sm:h-20">
+    <rect x="6" y="6" width="52" height="52" rx="14" fill="#475569" />
+    <path d="M32 22C26.4772 22 22 26.4772 22 32C22 37.5228 26.4772 42 32 42C37.5228 42 42 37.5228 42 32C42 26.4772 37.5228 22 32 22ZM32 38C28.6863 38 26 35.3137 26 32C26 28.6863 28.6863 26 32 26C35.3137 26 38 28.6863 38 32C38 35.3137 35.3137 38 32 38Z" fill="white" />
+    <path d="M34 16H30V20H34V16ZM34 44H30V48H34V44ZM48 30V34H44V30H48ZM20 30V34H16V30H20ZM42.5 18.5L39.5 21.5L42.5 24.5L45.5 21.5L42.5 18.5ZM21.5 39.5L18.5 42.5L21.5 45.5L24.5 42.5L21.5 39.5ZM42.5 45.5L45.5 42.5L42.5 39.5L39.5 42.5L42.5 45.5ZM21.5 24.5L24.5 21.5L21.5 18.5L18.5 21.5L21.5 24.5Z" fill="#CBD5E1" />
+  </svg>
+);
+
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
 
-  // Live Dashboard Analytics State
-  const [stats, setStats] = useState<any>({
-    total_invoices: 0,
-    total_commission_received: 0,
-    total_net: 0,
-    total_vat: 0,
-    total_gross: 0,
-    total_members: 0,
-    total_teams: 0,
-  });
-  const [recentInvoices, setRecentInvoices] = useState<any[]>([]);
-  const [topTeams, setTopTeams] = useState<any[]>([]);
-  const [loginLogs, setLoginLogs] = useState<any[]>([]);
-  const [siteActivityLogs, setSiteActivityLogs] = useState<any[]>([]);
-  const [statsLoading, setStatsLoading] = useState(true);
-
-  // Load Session User & Dashboard Stats
   useEffect(() => {
-    async function loadDashboardData() {
+    async function loadUserData() {
       try {
         const res = await fetch("/api/auth/login");
-        if (!res.ok) {
-          router.push("/");
-          return;
-        }
+        if (!res.ok) { router.push("/"); return; }
         const data = await res.json();
-        if (data.authenticated) {
-          setUser(data.user);
-
-          // Fetch Live Statistics, Login Logs & Site Activity Logs
-          try {
-            const [statsRes, logsRes, actRes] = await Promise.all([
-              fetch("/api/dashboard/stats"),
-              fetch("/api/auth/login-logs?limit=10"),
-              fetch("/api/activity-logs?limit=15"),
-            ]);
-            
-            if (statsRes.ok) {
-              const statsData = await statsRes.json();
-              setStats(statsData.stats || {});
-              setRecentInvoices(statsData.recent_invoices || []);
-              setTopTeams(statsData.top_teams || []);
-            }
-
-            if (logsRes.ok) {
-              const logsData = await logsRes.json();
-              setLoginLogs(logsData.logs || []);
-            }
-
-            if (actRes.ok) {
-              const actData = await actRes.json();
-              setSiteActivityLogs(actData.logs || []);
-            }
-          } catch (e) {
-            console.error("Failed to load dashboard stats:", e);
-          } finally {
-            setStatsLoading(false);
-          }
-        } else {
-          router.push("/");
-        }
-      } catch (err) {
-        router.push("/");
-      } finally {
-        setLoading(false);
-      }
+        if (data.authenticated) { setUser(data.user); } else { router.push("/"); }
+      } catch { router.push("/"); } finally { setLoading(false); }
     }
-    loadDashboardData();
+    loadUserData();
   }, [router]);
 
-  // Handle Refresh Stats
-  const handleRefreshStats = async () => {
-    setStatsLoading(true);
-    try {
-      const [statsRes, logsRes, actRes] = await Promise.all([
-        fetch("/api/dashboard/stats"),
-        fetch("/api/auth/login-logs?limit=10"),
-        fetch("/api/activity-logs?limit=15"),
-      ]);
-
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        setStats(statsData.stats || {});
-        setRecentInvoices(statsData.recent_invoices || []);
-        setTopTeams(statsData.top_teams || []);
-      }
-
-      if (logsRes.ok) {
-        const logsData = await logsRes.json();
-        setLoginLogs(logsData.logs || []);
-      }
-
-      if (actRes.ok) {
-        const actData = await actRes.json();
-        setSiteActivityLogs(actData.logs || []);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setStatsLoading(false);
-    }
-  };
-
-  // Handle Logout
   const handleLogout = async () => {
     setLoggingOut(true);
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      router.push("/");
-    } catch (err) {
-      console.error("Logout error:", err);
-    } finally {
-      setLoggingOut(false);
-    }
+    try { await fetch("/api/auth/logout", { method: "POST" }); router.push("/"); }
+    catch (err) { console.error("Logout error:", err); }
+    finally { setLoggingOut(false); }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center text-slate-900 font-sans">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-3 border-red-600 border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs font-semibold text-slate-500">Loading Dashboard...</span>
-        </div>
-      </div>
-    );
-  }
-
+  if (loading) return <PageLoader label="Loading Kiosk Dashboard..." />;
   if (!user) return null;
 
   const roleUpper = user.roleName.toUpperCase();
 
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
-      <HeaderNav user={user} onRefresh={handleRefreshStats} loadingRefresh={statsLoading} />
+  const kioskButtons = [
+    { title: "Sales", description: "Manage Sales & Revenue Ledger", href: "/invoices/sales", icon: SalesIcon, accentBorder: "hover:border-blue-500", badgeColor: "bg-blue-50 text-blue-700 border-blue-200" },
+    { title: "Expenses", description: "Log & Track Operational Expenses", href: "/invoices/expenses", icon: ExpensesIcon, accentBorder: "hover:border-red-500", badgeColor: "bg-red-50 text-red-700 border-red-200" },
+    { title: "TRN Library", description: "Tax Registration Records & Files", href: "/trn-library", icon: TrnLibraryIcon, accentBorder: "hover:border-cyan-500", badgeColor: "bg-cyan-50 text-cyan-700 border-cyan-200" },
+    { title: "Commissions", description: "Issue & View Commission Invoices", href: "/invoices", icon: CommissionsIcon, accentBorder: "hover:border-emerald-500", badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    { title: "Cash Advances", description: "Agent Advances & Vouchers", href: "/invoices/cash-advances", icon: CashAdvancesIcon, accentBorder: "hover:border-amber-500", badgeColor: "bg-amber-50 text-amber-700 border-amber-200" },
+    { title: "Invoice Profile", description: "TRN, Banking & Company Logos", href: "/invoices/profile", icon: InvoiceProfileIcon, accentBorder: "hover:border-purple-500", badgeColor: "bg-purple-50 text-purple-700 border-purple-200" },
+    { title: "Settings", description: "System & Account Preferences", href: "/settings", icon: SettingsIcon, accentBorder: "hover:border-slate-500", badgeColor: "bg-slate-100 text-slate-700 border-slate-300" },
+  ];
 
-      {/* Main Role-Based Dashboard Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 lg:p-12 space-y-8">
-        
-        {/* Welcome Header Card */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
-          <div className="absolute top-0 left-0 bottom-0 w-2 bg-red-600" />
-          
-          <div className="space-y-2">
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-red-600 selection:text-white">
+      {/* Top Bar */}
+      <div className="w-full bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Image src="/fhi.png" alt="Filipino Homes | Leuterio Realty" width={220} height={60} className="object-contain h-12 w-auto" priority />
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2.5 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-black text-[11px]">{user.name.charAt(0).toUpperCase()}</span>
+              </div>
+              <div>
+                <p className="font-extrabold text-slate-900 text-xs leading-none">{user.name}</p>
+                <p className="text-[10px] text-slate-500 font-medium mt-0.5">{roleUpper}</p>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="px-4 py-2 rounded-xl bg-white border-2 border-slate-200 hover:border-red-400 hover:bg-red-50 text-slate-600 hover:text-red-600 font-bold text-xs transition-all shadow-[0_3px_0_0_#E2E8F0] active:shadow-none active:translate-y-0.5 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>{loggingOut ? "Signing Out..." : "Sign Out"}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-10 flex flex-col gap-8">
+        {/* Welcome Banner */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-[0_6px_0_0_#E2E8F0] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">
+          <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-red-600 rounded-l-3xl" />
+          <div className="pl-4 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full bg-red-600 text-white text-xs font-bold uppercase tracking-wider">
+              <span className="px-3 py-1 rounded-full bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest">
                 {roleUpper}
               </span>
               {user.teamName && (
-                <span className="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-slate-500" />
+                <span className="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-semibold flex items-center gap-1.5">
+                  <Users className="w-3 h-3 text-slate-500" />
                   {user.teamName}
-                  {user.isTeamLeader && <span className="text-amber-600 font-bold">(Team Leader)</span>}
+                  {user.isTeamLeader && <span className="text-amber-600 font-bold ml-1">(Team Leader)</span>}
                 </span>
               )}
               {user.subteamName && (
-                <span className="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-slate-500" />
+                <span className="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-semibold flex items-center gap-1.5">
+                  <Layers className="w-3 h-3 text-slate-500" />
                   {user.subteamName}
-                  {user.isSubteamLeader && <span className="text-blue-600 font-bold">(Unit Leader)</span>}
+                  {user.isSubteamLeader && <span className="text-blue-600 font-bold ml-1">(Unit Leader)</span>}
                 </span>
               )}
             </div>
-
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               Welcome back, {user.name}
             </h1>
-            <p className="text-xs text-slate-500 font-mono">
-              Member ID: {user.memberCode || `#${user.id}`} • Account Status: Active
+            <p className="text-xs text-slate-500 font-medium">
+              Select a module below to get started &bull; Member ID:{" "}
+              <span className="font-mono font-bold text-slate-700">{user.memberCode || `#${user.id}`}</span>
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleRefreshStats}
-              disabled={statsLoading}
-              className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-              title="Refresh Dashboard Metrics"
-            >
-              <RefreshCw className={`w-4 h-4 text-slate-500 ${statsLoading ? "animate-spin" : ""}`} />
-            </button>
-            <Link
-              href="/invoices/cash-advances"
-              className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer"
-            >
-              <Coins className="w-4 h-4" />
-              <span>Cash Advances</span>
-            </Link>
-            <Link
-              href="/invoices"
-              className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer"
-            >
-              <FilePlus className="w-4 h-4" />
-              <span>Issue New Invoice</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* ========================================================= */}
-        {/* LIVE SYSTEM KPI METRICS GRID */}
-        {/* ========================================================= */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <Shield className="w-5 h-5 text-red-600" />
-              Real-Time System & Commission Analytics
-            </h2>
-            <span className="text-xs font-bold text-slate-500">
-              Live Database Connected
+          <div className="pl-4 sm:pl-0 hidden md:block">
+            <span className="font-mono text-[10px] bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg text-slate-500">
+              {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
             </span>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
-            {/* KPI: Total Commission Received */}
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-xs space-y-2 relative overflow-hidden">
-              <div className="flex items-center justify-between text-slate-500">
-                <span className="text-xs font-bold uppercase tracking-wider">Comm. Received</span>
-                <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
-                  <Coins className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-black text-blue-600 font-mono">
-                AED {Number(stats.total_commission_received || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium">Gross received before split</p>
-            </div>
-
-            {/* KPI 1: Gross Invoice Volume */}
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-xs space-y-2 relative overflow-hidden">
-              <div className="flex items-center justify-between text-slate-500">
-                <span className="text-xs font-bold uppercase tracking-wider">Gross Commission Volume</span>
-                <div className="p-2 rounded-xl bg-red-50 text-red-600">
-                  <TrendingUp className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-black text-slate-900 font-mono">
-                AED {Number(stats.total_gross || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium">Total payable invoice volume</p>
-            </div>
-
-            {/* KPI 2: Net Commission Volume */}
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-xs space-y-2 relative overflow-hidden">
-              <div className="flex items-center justify-between text-slate-500">
-                <span className="text-xs font-bold uppercase tracking-wider">Net Commission Subtotal</span>
-                <div className="p-2 rounded-xl bg-slate-100 text-slate-700">
-                  <DollarSign className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-black text-slate-900 font-mono">
-                AED {Number(stats.total_net || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium">Before 5% VAT calculations</p>
-            </div>
-
-            {/* KPI 3: Total VAT Collected */}
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-xs space-y-2 relative overflow-hidden">
-              <div className="flex items-center justify-between text-slate-500">
-                <span className="text-xs font-bold uppercase tracking-wider">Total VAT Collected</span>
-                <div className="p-2 rounded-xl bg-red-50 text-red-600">
-                  <Receipt className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-black text-red-600 font-mono">
-                AED {Number(stats.total_vat || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium">Tax compliance records</p>
-            </div>
-
-            {/* KPI 4: Total Generated Invoices */}
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-xs space-y-2 relative overflow-hidden">
-              <div className="flex items-center justify-between text-slate-500">
-                <span className="text-xs font-bold uppercase tracking-wider">Generated Invoices</span>
-                <div className="p-2 rounded-xl bg-slate-100 text-slate-700">
-                  <FileText className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-2xl font-black text-slate-900">
-                {stats.total_invoices || 0}
-              </div>
-              <p className="text-[11px] text-slate-500 font-medium">Invoices saved in database</p>
-            </div>
-          </div>
         </div>
 
-        {/* 2-COLUMN SECTION: RECENT INVOICES & TOP SALES TEAMS */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Left 2 Cols: Recent Saved Invoices Table */}
-          <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <History className="w-4 h-4 text-red-600" />
-                Recent Saved Invoices Activity Feed
-              </h3>
+        {/* Kiosk Tiles */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {kioskButtons.map((btn) => {
+            const IconComponent = btn.icon;
+            return (
               <Link
-                href="/invoices"
-                className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1"
+                key={btn.title}
+                href={btn.href}
+                className={`group relative bg-white border-2 border-slate-200 rounded-3xl p-7 flex flex-col items-center justify-center text-center transition-all duration-150 shadow-[0_8px_0_0_#CBD5E1] hover:shadow-[0_12px_0_0_#94A3B8] hover:-translate-y-1 active:translate-y-1 active:shadow-[0_2px_0_0_#CBD5E1] cursor-pointer ${btn.accentBorder}`}
               >
-                <span>View Full Tracker</span>
-                <ArrowUpRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50/50">
-                    <th className="py-3 px-4">Invoice #</th>
-                    <th className="py-3 px-4">Agent Name</th>
-                    <th className="py-3 px-4">Developer</th>
-                    <th className="py-3 px-4 text-right">Gross Total (AED)</th>
-                    <th className="py-3 px-4 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {recentInvoices.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-8 text-center text-slate-400">
-                        No recent invoices generated yet. Click "Issue New Invoice" to start!
-                      </td>
-                    </tr>
-                  ) : (
-                    recentInvoices.map((inv) => (
-                      <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="py-3.5 px-4">
-                          <span className="font-bold font-mono text-slate-900 block">
-                            {inv.invoice_number}
-                          </span>
-                          <span className="text-[10px] text-slate-400 block">
-                            {inv.issued_date ? new Date(inv.issued_date).toISOString().slice(0, 10) : "N/A"}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 font-semibold text-slate-800">
-                          {inv.agent_name}
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-600">
-                          {inv.developer_name || "N/A"}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900">
-                          AED {Number(inv.gross_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          <Link
-                            href="/invoices"
-                            className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] transition-colors"
-                          >
-                            <Eye className="w-3 h-3 text-red-500" />
-                            <span>View Canvas</span>
-                          </Link>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Right 1 Col: Top Performing Sales Teams Leaderboard */}
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Award className="w-4 h-4 text-amber-500" />
-                Top Sales Teams
-              </h3>
-              <Link href="/teams" className="text-xs font-bold text-slate-500 hover:text-slate-900">
-                View All
-              </Link>
-            </div>
-
-            <div className="space-y-3">
-              {topTeams.length === 0 ? (
-                <p className="text-xs text-slate-400 py-6 text-center">
-                  Team volume data will appear here as deal invoices are generated.
+                <div className="mb-5 transform transition-transform duration-200 group-hover:scale-105">
+                  <IconComponent />
+                </div>
+                <h2 className="text-lg font-black text-slate-900 tracking-tight mb-1.5 group-hover:text-slate-700 transition-colors">
+                  {btn.title}
+                </h2>
+                <p className="text-[11px] text-slate-500 font-semibold leading-relaxed mb-5">
+                  {btn.description}
                 </p>
-              ) : (
-                topTeams.map((team, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[11px] ${
-                        idx === 0 ? "bg-amber-100 text-amber-800 border border-amber-300" : "bg-slate-200 text-slate-700"
-                      }`}>
-                        #{idx + 1}
-                      </span>
-                      <div>
-                        <span className="font-bold text-slate-900 block">{team.team_name}</span>
-                        <span className="text-[10px] text-slate-500">{team.invoice_count} deal invoices</span>
-                      </div>
-                    </div>
-
-                    <span className="font-bold font-mono text-slate-900">
-                      AED {Number(team.total_volume || 0).toLocaleString("en-US", { minimumFractionDigits: 0 })}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+                <div className={`px-4 py-1.5 rounded-full border text-[10px] font-extrabold uppercase tracking-wider ${btn.badgeColor}`}>
+                  Open Module →
+                </div>
+              </Link>
+            );
+          })}
         </div>
-
-        {/* USER LOGIN ACTIVITY AUDIT LOGS SECTION */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-red-600" />
-                User Login Activity Audit Log
-              </h3>
-              <p className="text-xs text-slate-500 font-medium">
-                Real-time security logs tracking every user login attempt, IP address, status, and browser details.
-              </p>
-            </div>
-            <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-bold text-slate-700">
-              {loginLogs.length} Recent Logins
-            </span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50">
-                  <th className="py-3 px-4">Date & Time</th>
-                  <th className="py-3 px-4">User / Email</th>
-                  <th className="py-3 px-4">Role</th>
-                  <th className="py-3 px-4">IP Address</th>
-                  <th className="py-3 px-4">User Agent / Device</th>
-                  <th className="py-3 px-4 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs font-medium">
-                {loginLogs.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-400 font-normal">
-                      No login audit activity recorded yet.
-                    </td>
-                  </tr>
-                ) : (
-                  loginLogs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3.5 px-4 font-mono text-slate-600">
-                        {log.login_at ? new Date(log.login_at).toLocaleString("en-US", { dateStyle: "short", timeStyle: "medium" }) : "Just now"}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="font-bold text-slate-900 block">{log.user_name || log.email}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">{log.email}</span>
-                      </td>
-                      <td className="py-3.5 px-4 font-semibold text-slate-700">{log.role_name || "AGENT"}</td>
-                      <td className="py-3.5 px-4 font-mono text-slate-700">{log.ip_address || "127.0.0.1"}</td>
-                      <td className="py-3.5 px-4 font-mono text-[11px] text-slate-500 max-w-xs truncate" title={log.user_agent}>
-                        {log.user_agent || "Unknown Browser"}
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
-                          log.status === "SUCCESS"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-red-50 text-red-700 border-red-200"
-                        }`}>
-                          {log.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* SITE-WIDE USER MOVEMENTS AUDIT LOGS SECTION */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Layers className="w-4 h-4 text-emerald-600" />
-                Site-Wide User Activity & Movement Audit Trail
-              </h3>
-              <p className="text-xs text-slate-500 font-medium">
-                Live audit trail recording all user actions across the platform (Invoices created, batch CSV uploads, locks/unlocks, cash advances, repayments, and branding edits).
-              </p>
-            </div>
-            <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold">
-              {siteActivityLogs.length} Recent Movements
-            </span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500 bg-slate-50">
-                  <th className="py-3 px-4">Timestamp</th>
-                  <th className="py-3 px-4">Action Type</th>
-                  <th className="py-3 px-4">Module</th>
-                  <th className="py-3 px-4">User</th>
-                  <th className="py-3 px-4">Activity Description</th>
-                  <th className="py-3 px-4">IP Address</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs font-medium">
-                {siteActivityLogs.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-400 font-normal">
-                      No site movements recorded yet. Activity will appear as users perform actions.
-                    </td>
-                  </tr>
-                ) : (
-                  siteActivityLogs.map((act) => (
-                    <tr key={act.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3.5 px-4 font-mono text-slate-600 whitespace-nowrap">
-                        {act.created_at ? new Date(act.created_at).toLocaleString("en-US", { dateStyle: "short", timeStyle: "medium" }) : "Just now"}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-100 text-slate-800 border border-slate-200">
-                          {act.action_type}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 font-bold text-slate-700">{act.module_name}</td>
-                      <td className="py-3.5 px-4">
-                        <span className="font-bold text-slate-900 block">{act.user_name || "System User"}</span>
-                        {act.user_email && <span className="text-[10px] text-slate-400 font-mono">{act.user_email}</span>}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-800 font-medium max-w-md">
-                        {act.description}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono text-slate-600">{act.ip_address || "127.0.0.1"}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Quick Action Navigation Modules */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xs space-y-4">
-          <h3 className="text-lg font-bold text-slate-900">Quick Portal Administrative Modules</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link href="/invoices" className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-red-600 transition-colors flex items-center justify-between group cursor-pointer">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-red-600 font-bold">
-                  <FilePlus className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900 group-hover:text-red-600 transition-colors">Issue Invoices</h4>
-                  <p className="text-xs text-slate-500 font-medium">Issue & download canvas PDFs</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-            </Link>
-
-            <Link href="/invoices/cash-advances" className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-red-600 transition-colors flex items-center justify-between group cursor-pointer">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-red-600 font-bold">
-                  <Coins className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900 group-hover:text-red-600 transition-colors">Agent Cash Advances</h4>
-                  <p className="text-xs text-slate-500 font-medium">Issue, log repayments & vouchers</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-            </Link>
-
-            <Link href="/invoices" className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-red-600 transition-colors flex items-center justify-between group cursor-pointer">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 font-bold">
-                  <History className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900 group-hover:text-red-600 transition-colors">Invoices Tracker</h4>
-                  <p className="text-xs text-slate-500 font-medium">Search & regenerate saved DB records</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-            </Link>
-
-            <Link href="/invoices/profile" className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-red-600 transition-colors flex items-center justify-between group cursor-pointer">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-red-600 font-bold">
-                  <Settings className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900 group-hover:text-red-600 transition-colors">Invoice Profile</h4>
-                  <p className="text-xs text-slate-500 font-medium">TRN, S3 Logos & Wire Banking</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-        </div>
-
       </main>
 
-      {/* Clean White Footer */}
-      <footer className="w-full bg-white border-t border-slate-200 px-6 lg:px-12 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-        <div>
-          © {new Date().getFullYear()} Leuterio Realty & Brokerage. All rights reserved.
-        </div>
-        <div className="flex items-center gap-6 font-medium">
-          <a href="https://leuteriorealty.com" target="_blank" rel="noreferrer" className="text-red-600 hover:text-red-700 font-mono font-semibold">
-            leuteriorealty.com
-          </a>
-        </div>
+      <footer className="w-full bg-white border-t border-slate-200 px-6 py-5 text-center text-[11px] text-slate-400">
+        © {new Date().getFullYear()} FHI Global Property LLC &bull; All rights reserved
       </footer>
     </div>
   );

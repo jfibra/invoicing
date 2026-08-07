@@ -1,0 +1,4 @@
+Agent Code,Agent Name,Agent Email,Team Name,Subteam Name,Advance Amount,Currency,Term Type,Term Value,Total Repayment,Installment Amount,Start Date,Remarks
+MEM-001,John Doe,john.doe@filipinohomes.com,Dubai Sales Team,Downtown Subteam,5000.00,AED,MONTHS,6,5000.00,833.33,2026-08-01,Emergency personal advance request
+MEM-002,Maria Santos,maria.santos@filipinohomes.com,Abu Dhabi Sales Team,Corniche Subteam,3000.00,AED,WEEKS,4,3000.00,750.00,2026-08-01,Travel allowance advance
+MEM-003,Ahmed Hassan,ahmed.hassan@filipinohomes.com,Sharjah Sales Team,Al Majaz Subteam,10000.00,AED,MONTHS,12,10000.00,833.33,2026-08-01,Equipment purchase advance

@@ -1,0 +1,5 @@
+Expense Date,Tax Type,Company Name,TRN Number,Invoice Number,Subcategory,Net Amount,VAT Amount,Gross Taxable,Total Actual,Payment Method,Remarks
+2026-08-01,VAT,du Telecom UAE,10029302910003,INV-DU-9901,Mobile Phones (Business),450.00,22.50,450.00,472.50,BANK_TRANSFER,Monthly corporate mobile lines and plans
+2026-08-02,VAT,DEWA Electricity & Water,10038472910005,DEWA-2026-081,DEWA - Electricity,3500.00,175.00,3500.00,3675.00,BANK_TRANSFER,Commercial office utility statement
+2026-08-03,VAT,Etisalat UAE,10048192010007,INV-ET-8812,Internet (du / Etisalat),1200.00,60.00,1200.00,1260.00,CREDIT_CARD,High-speed office fiber internet line
+2026-08-04,NONVAT,General Post Office,10059102910009,P-99012,Courier & Postage,250.00,0.00,0.00,250.00,CASH,Exempt international courier postage

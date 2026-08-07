@@ -6,16 +6,36 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
+    const firstName = searchParams.get("firstName") || "";
+    const lastName = searchParams.get("lastName") || "";
+    const email = searchParams.get("email") || "";
     const status = (searchParams.get("status") || "all").toLowerCase();
     const dateRange = searchParams.get("dateRange");
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-    const limit = [10, 25, 50].includes(parseInt(searchParams.get("limit") || "10", 10))
+    const limit = [10, 25, 50, 100].includes(parseInt(searchParams.get("limit") || "10", 10))
       ? parseInt(searchParams.get("limit") || "10", 10)
       : 10;
     const offset = (page - 1) * limit;
 
     const whereConditions: string[] = ["1=1"];
     const params: (string | number)[] = [];
+
+    if (firstName.trim()) {
+      whereConditions.push("(m.fn LIKE ? OR m.completename LIKE ?)");
+      const term = `%${firstName.trim()}%`;
+      params.push(term, term);
+    }
+
+    if (lastName.trim()) {
+      whereConditions.push("(m.ln LIKE ? OR m.completename LIKE ?)");
+      const term = `%${lastName.trim()}%`;
+      params.push(term, term);
+    }
+
+    if (email.trim()) {
+      whereConditions.push("m.email LIKE ?");
+      params.push(`%${email.trim()}%`);
+    }
 
     if (search.trim()) {
       whereConditions.push("(m.completename LIKE ? OR m.fn LIKE ? OR m.mn LIKE ? OR m.ln LIKE ? OR m.email LIKE ? OR m.mobile LIKE ? OR m.phone LIKE ? OR m.memberid LIKE ?)");
