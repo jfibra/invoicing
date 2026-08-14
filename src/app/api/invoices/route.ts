@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get("type") || "";
     const status = searchParams.get("status") || "";
     const year = searchParams.get("year") || "";
+    const hasDeductible = searchParams.get("has_deductible") || "";
     const page = Math.max(1, Number(searchParams.get("page") || 1));
     const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit") || 10)));
     const offset = (page - 1) * limit;
@@ -99,6 +100,12 @@ export async function GET(request: NextRequest) {
     if (year) {
       whereClause += ` AND YEAR(issued_date) = ?`;
       queryParams.push(Number(year));
+    }
+
+    if (hasDeductible === "yes") {
+      whereClause += ` AND deductibles IS NOT NULL AND deductibles != '[]' AND deductibles != '' AND JSON_LENGTH(deductibles) > 0`;
+    } else if (hasDeductible === "no") {
+      whereClause += ` AND (deductibles IS NULL OR deductibles = '[]' OR deductibles = '' OR JSON_LENGTH(deductibles) = 0)`;
     }
 
     const [countRows] = await commissionsDb.query<RowDataPacket[]>(

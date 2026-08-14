@@ -49,6 +49,7 @@ import {
   Calendar,
   Paperclip,
   Tag,
+  Scissors,
   FileText as FileIcon,
   ExternalLink,
 } from "lucide-react";
@@ -341,9 +342,33 @@ function CommissionInvoicesContent() {
   const [historyType, setHistoryType] = useState("");
   const [historyStatus, setHistoryStatus] = useState("");
   const [historyYear, setHistoryYear] = useState("");
+  const [historyHasDeductible, setHistoryHasDeductible] = useState("");
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPagination, setHistoryPagination] = useState({ total: 0, totalPages: 1 });
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [viewingDeductiblesInvoice, setViewingDeductiblesInvoice] = useState<any | null>(null);
+
+  // Helper: Parse deductibles array safely
+  const parseInvoiceDeductibles = (rawDeductibles: any): { label: string; amount: number }[] => {
+    if (!rawDeductibles) return [];
+    let parsed: any[] = [];
+    try {
+      if (typeof rawDeductibles === "string") {
+        parsed = JSON.parse(rawDeductibles);
+      } else if (Array.isArray(rawDeductibles)) {
+        parsed = rawDeductibles;
+      }
+    } catch (e) {
+      parsed = [];
+    }
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item: any) => ({
+        label: String(item?.label || item?.title || "Deductible Item").trim(),
+        amount: Math.max(0, Number(item?.amount || 0)),
+      }))
+      .filter((item) => item.amount > 0 || item.label !== "");
+  };
 
   // -------------------------------------------------------------
   // Edit Invoice Modal State
@@ -540,6 +565,7 @@ function CommissionInvoicesContent() {
         type: historyType,
         status: historyStatus,
         year: historyYear,
+        has_deductible: historyHasDeductible,
         page: historyPage.toString(),
         limit: "10",
       });
@@ -555,7 +581,7 @@ function CommissionInvoicesContent() {
     } finally {
       setHistoryLoading(false);
     }
-  }, [historySearch, historyType, historyStatus, historyYear, historyPage]);
+  }, [historySearch, historyType, historyStatus, historyYear, historyHasDeductible, historyPage]);
 
   useEffect(() => {
     if (viewMode === "HISTORY") {
@@ -1596,6 +1622,7 @@ function CommissionInvoicesContent() {
                       setHistoryType("");
                       setHistoryStatus("");
                       setHistoryYear("");
+                      setHistoryHasDeductible("");
                       setHistoryPage(1);
                     }}
                     className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer"
@@ -1606,7 +1633,7 @@ function CommissionInvoicesContent() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                   <input
@@ -1683,6 +1710,22 @@ function CommissionInvoicesContent() {
                     <option value="2023">2023</option>
                   </select>
                 </div>
+
+                <div className="relative">
+                  <Scissors className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                  <select
+                    value={historyHasDeductible}
+                    onChange={(e) => {
+                      setHistoryHasDeductible(e.target.value);
+                      setHistoryPage(1);
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-bold focus:outline-none focus:border-red-600 cursor-pointer"
+                  >
+                    <option value="">All Records</option>
+                    <option value="yes">With Deductibles</option>
+                    <option value="no">Without Deductibles</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -1708,6 +1751,7 @@ function CommissionInvoicesContent() {
                       <th className="py-3 px-4 text-right">Comm. Received</th>
                       <th className="py-3 px-4 text-right">Agent Split (%)</th>
                       <th className="py-3 px-4 text-right">Net</th>
+                      <th className="py-3 px-4 text-right">Deductibles</th>
                       <th className="py-3 px-4 text-right">Gross Total</th>
                       <th className="py-3 px-4 text-center">Lock Status</th>
                       <th className="py-3 px-4 text-right">Actions</th>
@@ -1716,148 +1760,186 @@ function CommissionInvoicesContent() {
                   <tbody className="divide-y divide-slate-100 text-xs">
                     {historyLoading ? (
                       <tr>
-                        <td colSpan={9} className="py-12 text-center text-slate-400">
+                        <td colSpan={10} className="py-12 text-center text-slate-400">
                           <Loader2 className="w-6 h-6 animate-spin mx-auto text-red-600 mb-2" />
                           <span>Loading invoice history...</span>
                         </td>
                       </tr>
                     ) : historyInvoices.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="py-12 text-center text-slate-400">
+                        <td colSpan={10} className="py-12 text-center text-slate-400">
                           No saved invoices found in database.
                         </td>
                       </tr>
                     ) : (
-                      historyInvoices.map((inv) => (
-                        <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold font-mono text-slate-900">
-                                {inv.invoice_number}
+                      historyInvoices.map((inv) => {
+                        const invDeductibles = parseInvoiceDeductibles(inv.deductibles);
+                        const totalDeductibleVal = invDeductibles.reduce((sum, d) => sum + d.amount, 0);
+                        const hasDeductibles = invDeductibles.length > 0 && totalDeductibleVal > 0;
+
+                        return (
+                          <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold font-mono text-slate-900">
+                                  {inv.invoice_number}
+                                </span>
+                                {Number(inv.attachment_count) > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenViewAttachmentsModal(inv)}
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-800 text-[10px] font-bold hover:bg-purple-200 transition-colors cursor-pointer"
+                                    title="View document attachments"
+                                  >
+                                    <Paperclip className="w-3 h-3 text-purple-600" />
+                                    <span>{inv.attachment_count}</span>
+                                  </button>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                <span className="text-[10px] text-slate-400">
+                                  {inv.issued_date ? new Date(inv.issued_date).toISOString().slice(0, 10) : "N/A"} • {inv.invoice_type}
+                                </span>
+                                {hasDeductibles && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setViewingDeductiblesInvoice(inv)}
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-100/90 text-amber-900 text-[9px] font-bold hover:bg-amber-200 transition-colors cursor-pointer border border-amber-300/60"
+                                    title="Invoice has itemized deductibles recorded"
+                                  >
+                                    <Scissors className="w-2.5 h-2.5 text-amber-700" />
+                                    <span>Deductible ({invDeductibles.length})</span>
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-4 px-4 font-semibold text-slate-800">
+                              <div>{inv.agent_name}</div>
+                              {inv.agent_code && (
+                                <span className="text-[10px] text-slate-400 font-mono">
+                                  Code: {inv.agent_code}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-4 px-4">
+                              <span className="font-medium text-slate-800 block">
+                                {inv.developer_name || "N/A"}
                               </span>
-                              {Number(inv.attachment_count) > 0 && (
+                              <span className="text-[10px] text-slate-400 block font-mono">
+                                {inv.project_name ? `${inv.project_name} (${inv.buyer_name ? `Buyer: ${inv.buyer_name}` : inv.unit_number || 'Unit'})` : 'N/A'}
+                              </span>
+                            </td>
+                            <td className="py-4 px-4 text-right font-mono text-slate-700">
+                              {inv.commission_received ? `${inv.currency || "AED"} ${Number(inv.commission_received).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "-"}
+                            </td>
+                            <td className="py-4 px-4 text-right font-mono font-semibold text-slate-700">
+                              {inv.commission_rate ? `${Number(inv.commission_rate)}%` : "-"}
+                            </td>
+                            <td className="py-4 px-4 text-right font-mono font-semibold text-slate-700">
+                              {inv.currency || "AED"} {Number(inv.net_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                            </td>
+
+                            {/* DEDUCTIBLES COLUMN */}
+                            <td className="py-4 px-4 text-right font-mono">
+                              {hasDeductibles ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setViewingDeductiblesInvoice(inv)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                                  title="Click to view itemized deductibles breakdown"
+                                >
+                                  <Scissors className="w-3 h-3 text-amber-600" />
+                                  <span>-{inv.currency || "AED"} {totalDeductibleVal.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                                </button>
+                              ) : (
+                                <span className="text-slate-400 text-xs font-medium">-</span>
+                              )}
+                            </td>
+
+                            <td className="py-4 px-4 text-right font-mono font-bold text-slate-900">
+                              {inv.currency || "AED"} {Number(inv.gross_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                            </td>
+
+                            {/* LOCK / UNLOCK TOGGLE ACTION BUTTON */}
+                            <td className="py-4 px-4 text-center">
+                              {inv.is_locked ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleLock(inv.id, false)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-[11px] font-bold transition-colors cursor-pointer"
+                                  title="Invoice is Locked. Click to Unlock for Editing"
+                                >
+                                  <Lock className="w-3 h-3 text-amber-600" />
+                                  <span>Locked</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleLock(inv.id, true)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-bold transition-colors cursor-pointer"
+                                  title="Invoice is Unlocked. Click to Lock"
+                                >
+                                  <Unlock className="w-3 h-3 text-emerald-600" />
+                                  <span>Unlocked</span>
+                                </button>
+                              )}
+                            </td>
+
+                            <td className="py-4 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {/* VIEW ATTACHMENTS SHORTCUT BUTTON */}
                                 <button
                                   type="button"
                                   onClick={() => handleOpenViewAttachmentsModal(inv)}
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-100 text-purple-800 text-[10px] font-bold hover:bg-purple-200 transition-colors cursor-pointer"
-                                  title="View document attachments"
+                                  className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                                  title="View & Manage S3 Document Attachments"
                                 >
-                                  <Paperclip className="w-3 h-3 text-purple-600" />
-                                  <span>{inv.attachment_count}</span>
+                                  <Paperclip className="w-3.5 h-3.5 text-purple-600" />
+                                  <span>Files ({inv.attachment_count || 0})</span>
                                 </button>
-                              )}
-                            </div>
-                            <span className="text-[10px] text-slate-400 block mt-0.5">
-                              {inv.issued_date ? new Date(inv.issued_date).toISOString().slice(0, 10) : "N/A"} • {inv.invoice_type}
-                            </span>
-                          </td>
-                          <td className="py-4 px-4 font-semibold text-slate-800">
-                            <div>{inv.agent_name}</div>
-                            {inv.agent_code && (
-                              <span className="text-[10px] text-slate-400 font-mono">
-                                Code: {inv.agent_code}
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-4 px-4">
-                            <span className="font-medium text-slate-800 block">
-                              {inv.developer_name || "N/A"}
-                            </span>
-                            <span className="text-[10px] text-slate-400 block font-mono">
-                              {inv.project_name ? `${inv.project_name} (${inv.buyer_name ? `Buyer: ${inv.buyer_name}` : inv.unit_number || 'Unit'})` : 'N/A'}
-                            </span>
-                          </td>
-                          <td className="py-4 px-4 text-right font-mono text-slate-700">
-                            {inv.commission_received ? `${inv.currency || "AED"} ${Number(inv.commission_received).toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "-"}
-                          </td>
-                          <td className="py-4 px-4 text-right font-mono font-semibold text-slate-700">
-                            {inv.commission_rate ? `${Number(inv.commission_rate)}%` : "-"}
-                          </td>
-                          <td className="py-4 px-4 text-right font-mono font-semibold text-slate-700">
-                            {inv.currency || "AED"} {Number(inv.net_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-4 px-4 text-right font-mono font-bold text-slate-900">
-                            {inv.currency || "AED"} {Number(inv.gross_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                          </td>
 
-                          {/* LOCK / UNLOCK TOGGLE ACTION BUTTON */}
-                          <td className="py-4 px-4 text-center">
-                            {inv.is_locked ? (
-                              <button
-                                type="button"
-                                onClick={() => handleToggleLock(inv.id, false)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-[11px] font-bold transition-colors cursor-pointer"
-                                title="Invoice is Locked. Click to Unlock for Editing"
-                              >
-                                <Lock className="w-3 h-3 text-amber-600" />
-                                <span>Locked</span>
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => handleToggleLock(inv.id, true)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-bold transition-colors cursor-pointer"
-                                title="Invoice is Unlocked. Click to Lock"
-                              >
-                                <Unlock className="w-3 h-3 text-emerald-600" />
-                                <span>Unlocked</span>
-                              </button>
-                            )}
-                          </td>
+                                {/* EDIT ACTION BUTTON */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditModal(inv)}
+                                  disabled={Boolean(inv.is_locked)}
+                                  className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5 shadow-2xs ${
+                                    inv.is_locked
+                                      ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50"
+                                      : "bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 cursor-pointer"
+                                  }`}
+                                  title={inv.is_locked ? "Invoice is Locked. Unlock to Edit." : "Edit Invoice Details"}
+                                >
+                                  <Edit3 className="w-3.5 h-3.5 text-blue-600" />
+                                  <span>Edit</span>
+                                </button>
 
-                          <td className="py-4 px-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              {/* VIEW ATTACHMENTS SHORTCUT BUTTON */}
-                              <button
-                                type="button"
-                                onClick={() => handleOpenViewAttachmentsModal(inv)}
-                                className="px-2.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
-                                title="View & Manage S3 Document Attachments"
-                              >
-                                <Paperclip className="w-3.5 h-3.5 text-purple-600" />
-                                <span>Files ({inv.attachment_count || 0})</span>
-                              </button>
+                                {/* VIEW / REGENERATE CANVAS BUTTON */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRegenerateFromHistory(inv)}
+                                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white border border-slate-900 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                                  title="View & Regenerate on Canvas"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-red-500" />
+                                  <span>View / Regenerate</span>
+                                </button>
 
-                              {/* EDIT ACTION BUTTON */}
-                              <button
-                                type="button"
-                                onClick={() => handleOpenEditModal(inv)}
-                                disabled={Boolean(inv.is_locked)}
-                                className={`px-2.5 py-1.5 rounded-xl font-bold text-xs transition-colors flex items-center gap-1 ${
-                                  inv.is_locked
-                                    ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50"
-                                    : "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer shadow-xs"
-                                }`}
-                                title={inv.is_locked ? "Invoice is Locked. Unlock to Edit." : "Edit Invoice Details"}
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                                <span>Edit</span>
-                              </button>
-
-                              {/* VIEW / REGENERATE CANVAS BUTTON */}
-                              <button
-                                type="button"
-                                onClick={() => handleRegenerateFromHistory(inv)}
-                                className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
-                                title="View & Regenerate on Canvas"
-                              >
-                                <Eye className="w-3.5 h-3.5 text-red-500" />
-                                <span>View / Regenerate</span>
-                              </button>
-
-                              {/* DELETE BUTTON */}
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteInvoice(inv.id, inv.invoice_number)}
-                                className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                                title="Delete Record"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
+                                {/* DELETE BUTTON */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteInvoice(inv.id, inv.invoice_number)}
+                                  className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                                  title="Delete Record"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                  <span>Delete</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -3452,6 +3534,174 @@ function CommissionInvoicesContent() {
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Itemized Deductibles Modal */}
+      {viewingDeductiblesInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="px-6 py-5 bg-gradient-to-r from-amber-50 via-slate-50 to-white border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-amber-500 text-white shadow-md">
+                  <Scissors className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    Itemized Deductibles Breakdown
+                  </h3>
+                  <p className="text-xs text-slate-500 font-mono mt-0.5">
+                    Invoice #{viewingDeductiblesInvoice.invoice_number} • {viewingDeductiblesInvoice.agent_name}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewingDeductiblesInvoice(null)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-6">
+              {/* Invoice Key Financial Summary Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50/80 p-4 rounded-2xl border border-slate-200">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Net Commission</span>
+                  <span className="text-xs font-bold font-mono text-slate-800">
+                    {viewingDeductiblesInvoice.currency || "AED"} {Number(viewingDeductiblesInvoice.net_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 block">Total Deductibles</span>
+                  <span className="text-xs font-bold font-mono text-amber-700">
+                    -{viewingDeductiblesInvoice.currency || "AED"} {
+                      parseInvoiceDeductibles(viewingDeductiblesInvoice.deductibles)
+                        .reduce((sum, d) => sum + d.amount, 0)
+                        .toLocaleString("en-US", { minimumFractionDigits: 2 })
+                    }
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">VAT Amount</span>
+                  <span className="text-xs font-bold font-mono text-slate-800">
+                    {viewingDeductiblesInvoice.currency || "AED"} {Number(viewingDeductiblesInvoice.vat_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 block">Gross Payout</span>
+                  <span className="text-xs font-bold font-mono text-emerald-800">
+                    {viewingDeductiblesInvoice.currency || "AED"} {Number(viewingDeductiblesInvoice.gross_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Deductibles List */}
+              {(() => {
+                const items = parseInvoiceDeductibles(viewingDeductiblesInvoice.deductibles);
+                const total = items.reduce((sum, d) => sum + d.amount, 0);
+                const net = Number(viewingDeductiblesInvoice.net_amount || 0);
+
+                if (items.length === 0) {
+                  return (
+                    <div className="py-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                      <Receipt className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+                      <p className="text-xs font-semibold text-slate-500">No Deductibles Recorded</p>
+                      <p className="text-[11px] text-slate-400 mt-1">This invoice does not have any itemized deductible deductions.</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Itemized List ({items.length} {items.length === 1 ? 'deduction' : 'deductions'})
+                      </h4>
+                      <span className="text-xs font-bold text-amber-700 font-mono">
+                        Subtotal: -{viewingDeductiblesInvoice.currency || "AED"} {total.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-slate-100/70 border-b border-slate-200 text-[10px] font-bold uppercase text-slate-500">
+                            <th className="py-2.5 px-4">#</th>
+                            <th className="py-2.5 px-4">Deductible Description / Purpose</th>
+                            <th className="py-2.5 px-4 text-right">% of Net</th>
+                            <th className="py-2.5 px-4 text-right">Deducted Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 font-medium">
+                          {items.map((item, idx) => {
+                            const pctOfNet = net > 0 ? ((item.amount / net) * 100).toFixed(1) : "0.0";
+                            return (
+                              <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                                <td className="py-3 px-4 font-bold text-slate-400">{idx + 1}</td>
+                                <td className="py-3 px-4 text-slate-800 font-semibold">{item.label}</td>
+                                <td className="py-3 px-4 text-right font-mono text-slate-500">{pctOfNet}%</td>
+                                <td className="py-3 px-4 text-right font-mono font-bold text-amber-700">
+                                  -{viewingDeductiblesInvoice.currency || "AED"} {item.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-amber-50/60 border-t border-amber-200/80 font-bold text-xs">
+                            <td colSpan={3} className="py-3 px-4 text-slate-700 uppercase tracking-wider text-[11px]">
+                              Total Itemized Deductibles
+                            </td>
+                            <td className="py-3 px-4 text-right font-mono text-amber-900 text-sm">
+                              -{viewingDeductiblesInvoice.currency || "AED"} {total.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Calculation Formula Explanation Box */}
+              <div className="bg-blue-50/60 border border-blue-200/70 rounded-2xl p-4 text-xs text-blue-900 flex items-start gap-3">
+                <Calculator className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <span className="font-bold block">Gross Payout Calculation Rule</span>
+                  <p className="text-[11px] text-blue-700 leading-relaxed">
+                    Gross Amount = Net Commission + VAT ({viewingDeductiblesInvoice.vat_rate || 5}%) - Total Deductibles. Itemized deductibles are directly subtracted from the agent's net payout before tax calculation.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+              <button
+                onClick={() => setViewingDeductiblesInvoice(null)}
+                className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+
+              {!viewingDeductiblesInvoice.is_locked && (
+                <button
+                  onClick={() => {
+                    const inv = viewingDeductiblesInvoice;
+                    setViewingDeductiblesInvoice(null);
+                    handleOpenEditModal(inv);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  <span>Edit Deductibles on Invoice</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
