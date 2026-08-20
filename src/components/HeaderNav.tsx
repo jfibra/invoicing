@@ -18,6 +18,7 @@ import {
   Search,
   Sun,
   Moon,
+  Stamp,
 } from "lucide-react";
 import CommandPalette from "@/components/CommandPalette";
 
@@ -79,6 +80,7 @@ export default function HeaderNav({ user, onRefresh, loadingRefresh }: HeaderNav
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Commission Invoices", href: "/invoices", icon: FilePlus },
     { label: "Cash Advances", href: "/invoices/cash-advances", icon: Coins },
+    { label: "Stamp & Seals", href: "/stamp-generator", icon: Stamp },
     { label: "TRN Library", href: "/trn-library", icon: FileText },
     { label: "Teams", href: "/teams", icon: Users },
     { label: "Invoice Profiles", href: "/invoices/profile", icon: Settings },

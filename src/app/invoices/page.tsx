@@ -114,6 +114,15 @@ const BulkBatchKioskIcon = () => (
   </svg>
 );
 
+const StampKioskIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" className="w-16 h-16 sm:w-20 sm:h-20">
+    <rect x="6" y="6" width="52" height="52" rx="14" fill="#D97706" />
+    <circle cx="32" cy="32" r="16" stroke="#FFFFFF" strokeWidth="2.5" strokeDasharray="3 3" />
+    <circle cx="32" cy="32" r="12" fill="#FFFFFF" fillOpacity="0.2" stroke="#FFFFFF" strokeWidth="2" />
+    <path d="M32 23L34.5 28.5L40.5 29L36 33L37.5 39L32 36L26.5 39L28 33L23.5 29L29.5 28.5L32 23Z" fill="#FFFFFF" />
+  </svg>
+);
+
 export default function CommissionInvoicesPage() {
   return (
     <Suspense
@@ -1221,22 +1230,22 @@ function CommissionInvoicesContent() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-5xl mx-auto w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto w-full">
               {/* Kiosk Tile 1: Issue Commission Invoice */}
               <button
                 onClick={() => setViewMode("ISSUE")}
-                className="group bg-white border-2 border-slate-200 hover:border-red-500 rounded-3xl p-8 sm:p-10 flex flex-col items-center justify-center text-center transition-all duration-150 shadow-[0_8px_0_0_#CBD5E1] hover:shadow-[0_12px_0_0_#94A3B8] hover:-translate-y-1 active:translate-y-1.5 active:shadow-[0_2px_0_0_#CBD5E1] cursor-pointer"
+                className="group bg-white border-2 border-slate-200 hover:border-red-500 rounded-3xl p-6 sm:p-8 flex flex-col items-center justify-center text-center transition-all duration-150 shadow-[0_8px_0_0_#CBD5E1] hover:shadow-[0_12px_0_0_#94A3B8] hover:-translate-y-1 active:translate-y-1.5 active:shadow-[0_2px_0_0_#CBD5E1] cursor-pointer"
               >
-                <div className="mb-6 transform transition-transform duration-200 group-hover:scale-110">
+                <div className="mb-4 transform transition-transform duration-200 group-hover:scale-110">
                   <IssueCommissionKioskIcon />
                 </div>
-                <h2 className="text-2xl font-black text-slate-900 mb-2 group-hover:text-slate-700 transition-colors">
+                <h2 className="text-xl font-black text-slate-900 mb-2 group-hover:text-slate-700 transition-colors">
                   Issue Invoice
                 </h2>
-                <p className="text-xs text-slate-500 font-semibold max-w-xs leading-relaxed mb-6">
+                <p className="text-xs text-slate-500 font-semibold leading-relaxed mb-6">
                   Issue agent commission invoice with split calculations, deductibles & VAT.
                 </p>
-                <div className="px-5 py-2 rounded-full border-2 border-red-200 bg-red-50 text-red-700 font-black text-xs uppercase tracking-wider shadow-xs">
+                <div className="mt-auto px-4 py-2 rounded-full border-2 border-red-200 bg-red-50 text-red-700 font-black text-xs uppercase tracking-wider shadow-xs">
                   Issue New →
                 </div>
               </button>
@@ -1247,18 +1256,18 @@ function CommissionInvoicesContent() {
                   setViewMode("HISTORY");
                   fetchInvoiceHistory();
                 }}
-                className="group bg-white border-2 border-slate-200 hover:border-blue-500 rounded-3xl p-8 sm:p-10 flex flex-col items-center justify-center text-center transition-all duration-150 shadow-[0_8px_0_0_#CBD5E1] hover:shadow-[0_12px_0_0_#94A3B8] hover:-translate-y-1 active:translate-y-1.5 active:shadow-[0_2px_0_0_#CBD5E1] cursor-pointer"
+                className="group bg-white border-2 border-slate-200 hover:border-blue-500 rounded-3xl p-6 sm:p-8 flex flex-col items-center justify-center text-center transition-all duration-150 shadow-[0_8px_0_0_#CBD5E1] hover:shadow-[0_12px_0_0_#94A3B8] hover:-translate-y-1 active:translate-y-1.5 active:shadow-[0_2px_0_0_#CBD5E1] cursor-pointer"
               >
-                <div className="mb-6 transform transition-transform duration-200 group-hover:scale-110">
+                <div className="mb-4 transform transition-transform duration-200 group-hover:scale-110">
                   <TrackerKioskIcon />
                 </div>
-                <h2 className="text-2xl font-black text-slate-900 mb-2 group-hover:text-slate-700 transition-colors">
+                <h2 className="text-xl font-black text-slate-900 mb-2 group-hover:text-slate-700 transition-colors">
                   Invoice History
                 </h2>
-                <p className="text-xs text-slate-500 font-semibold max-w-xs leading-relaxed mb-6">
+                <p className="text-xs text-slate-500 font-semibold leading-relaxed mb-6">
                   Search, view PDF invoices, inspect database records & track payouts.
                 </p>
-                <div className="px-5 py-2 rounded-full border-2 border-blue-200 bg-blue-50 text-blue-700 font-black text-xs uppercase tracking-wider shadow-xs">
+                <div className="mt-auto px-4 py-2 rounded-full border-2 border-blue-200 bg-blue-50 text-blue-700 font-black text-xs uppercase tracking-wider shadow-xs">
                   Open Ledger →
                 </div>
               </button>
@@ -1266,21 +1275,40 @@ function CommissionInvoicesContent() {
               {/* Kiosk Tile 3: Bulk Batch Uploader */}
               <button
                 onClick={() => setViewMode("BATCH")}
-                className="group bg-white border-2 border-slate-200 hover:border-emerald-500 rounded-3xl p-8 sm:p-10 flex flex-col items-center justify-center text-center transition-all duration-150 shadow-[0_8px_0_0_#CBD5E1] hover:shadow-[0_12px_0_0_#94A3B8] hover:-translate-y-1 active:translate-y-1.5 active:shadow-[0_2px_0_0_#CBD5E1] cursor-pointer"
+                className="group bg-white border-2 border-slate-200 hover:border-emerald-500 rounded-3xl p-6 sm:p-8 flex flex-col items-center justify-center text-center transition-all duration-150 shadow-[0_8px_0_0_#CBD5E1] hover:shadow-[0_12px_0_0_#94A3B8] hover:-translate-y-1 active:translate-y-1.5 active:shadow-[0_2px_0_0_#CBD5E1] cursor-pointer"
               >
-                <div className="mb-6 transform transition-transform duration-200 group-hover:scale-110">
+                <div className="mb-4 transform transition-transform duration-200 group-hover:scale-110">
                   <BulkBatchKioskIcon />
                 </div>
-                <h2 className="text-2xl font-black text-slate-900 mb-2 group-hover:text-slate-700 transition-colors">
-                  Bulk Batch Upload
+                <h2 className="text-xl font-black text-slate-900 mb-2 group-hover:text-slate-700 transition-colors">
+                  Bulk Batch
                 </h2>
-                <p className="text-xs text-slate-500 font-semibold max-w-xs leading-relaxed mb-6">
+                <p className="text-xs text-slate-500 font-semibold leading-relaxed mb-6">
                   Batch upload spreadsheet commission invoice entries via CSV.
                 </p>
-                <div className="px-5 py-2 rounded-full border-2 border-emerald-200 bg-emerald-50 text-emerald-700 font-black text-xs uppercase tracking-wider shadow-xs">
+                <div className="mt-auto px-4 py-2 rounded-full border-2 border-emerald-200 bg-emerald-50 text-emerald-700 font-black text-xs uppercase tracking-wider shadow-xs">
                   Batch Upload →
                 </div>
               </button>
+
+              {/* Kiosk Tile 4: Stamp & Seal Generator */}
+              <Link
+                href="/stamp-generator"
+                className="group bg-white border-2 border-slate-200 hover:border-amber-500 rounded-3xl p-6 sm:p-8 flex flex-col items-center justify-center text-center transition-all duration-150 shadow-[0_8px_0_0_#CBD5E1] hover:shadow-[0_12px_0_0_#94A3B8] hover:-translate-y-1 active:translate-y-1.5 active:shadow-[0_2px_0_0_#CBD5E1] cursor-pointer"
+              >
+                <div className="mb-4 transform transition-transform duration-200 group-hover:scale-110">
+                  <StampKioskIcon />
+                </div>
+                <h2 className="text-xl font-black text-slate-900 mb-2 group-hover:text-slate-700 transition-colors">
+                  Stamp & Seals
+                </h2>
+                <p className="text-xs text-slate-500 font-semibold leading-relaxed mb-6">
+                  Generate VIP member seals, approval stamps & badges with custom logos.
+                </p>
+                <div className="mt-auto px-4 py-2 rounded-full border-2 border-amber-200 bg-amber-50 text-amber-700 font-black text-xs uppercase tracking-wider shadow-xs">
+                  Open Studio →
+                </div>
+              </Link>
             </div>
           </div>
         )}

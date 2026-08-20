@@ -16,6 +16,7 @@ import {
   ArrowRight,
   Sparkles,
   X,
+  Stamp,
 } from "lucide-react";
 
 interface CommandPaletteProps {
@@ -125,12 +126,23 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
     },
     {
       id: "nav-cash-advances",
-      title: "Cash Advances",
-      subtitle: "Track Payout Deductions & Balance",
+      title: "Cash Advances & Receipts",
+      subtitle: "Agent Disbursement & Repayment Ledgers",
       category: "Navigation",
       icon: Coins,
       action: () => {
         router.push("/invoices/cash-advances");
+        onClose();
+      },
+    },
+    {
+      id: "nav-stamp-generator",
+      title: "Stamp & Seal Generator",
+      subtitle: "Design VIP Member Badges & Official Stamp Seals",
+      category: "Navigation",
+      icon: Stamp,
+      action: () => {
+        router.push("/stamp-generator");
         onClose();
       },
     },

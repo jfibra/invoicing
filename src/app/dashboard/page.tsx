@@ -85,6 +85,15 @@ const InvoiceProfileIcon = () => (
   </svg>
 );
 
+const StampGeneratorIcon = () => (
+  <svg viewBox="0 0 64 64" fill="none" className="w-16 h-16 sm:w-20 sm:h-20">
+    <rect x="6" y="6" width="52" height="52" rx="14" fill="#EA580C" />
+    <circle cx="32" cy="32" r="16" stroke="#FFFFFF" strokeWidth="2.5" strokeDasharray="3 3" />
+    <circle cx="32" cy="32" r="12" fill="#FFFFFF" fillOpacity="0.2" stroke="#FFFFFF" strokeWidth="2" />
+    <path d="M32 23L34.5 28.5L40.5 29L36 33L37.5 39L32 36L26.5 39L28 33L23.5 29L29.5 28.5L32 23Z" fill="#FFFFFF" />
+  </svg>
+);
+
 const SettingsIcon = () => (
   <svg viewBox="0 0 64 64" fill="none" className="w-16 h-16 sm:w-20 sm:h-20">
     <rect x="6" y="6" width="52" height="52" rx="14" fill="#475569" />
@@ -124,11 +133,12 @@ export default function DashboardPage() {
   const roleUpper = user.roleName.toUpperCase();
 
   const kioskButtons = [
+    { title: "Commissions", description: "Issue & View Commission Invoices", href: "/invoices", icon: CommissionsIcon, accentBorder: "hover:border-emerald-500", badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    { title: "Cash Advances", description: "Agent Advances & Vouchers", href: "/invoices/cash-advances", icon: CashAdvancesIcon, accentBorder: "hover:border-amber-500", badgeColor: "bg-amber-50 text-amber-700 border-amber-200" },
+    { title: "Stamp & Seals", description: "Design VIP Badges & Official Seals", href: "/stamp-generator", icon: StampGeneratorIcon, accentBorder: "hover:border-orange-500", badgeColor: "bg-orange-50 text-orange-700 border-orange-200" },
     { title: "Sales", description: "Manage Sales & Revenue Ledger", href: "/invoices/sales", icon: SalesIcon, accentBorder: "hover:border-blue-500", badgeColor: "bg-blue-50 text-blue-700 border-blue-200" },
     { title: "Expenses", description: "Log & Track Operational Expenses", href: "/invoices/expenses", icon: ExpensesIcon, accentBorder: "hover:border-red-500", badgeColor: "bg-red-50 text-red-700 border-red-200" },
     { title: "TRN Library", description: "Tax Registration Records & Files", href: "/trn-library", icon: TrnLibraryIcon, accentBorder: "hover:border-cyan-500", badgeColor: "bg-cyan-50 text-cyan-700 border-cyan-200" },
-    { title: "Commissions", description: "Issue & View Commission Invoices", href: "/invoices", icon: CommissionsIcon, accentBorder: "hover:border-emerald-500", badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-    { title: "Cash Advances", description: "Agent Advances & Vouchers", href: "/invoices/cash-advances", icon: CashAdvancesIcon, accentBorder: "hover:border-amber-500", badgeColor: "bg-amber-50 text-amber-700 border-amber-200" },
     { title: "Invoice Profile", description: "TRN, Banking & Company Logos", href: "/invoices/profile", icon: InvoiceProfileIcon, accentBorder: "hover:border-purple-500", badgeColor: "bg-purple-50 text-purple-700 border-purple-200" },
     { title: "Settings", description: "System & Account Preferences", href: "/settings", icon: SettingsIcon, accentBorder: "hover:border-slate-500", badgeColor: "bg-slate-100 text-slate-700 border-slate-300" },
   ];
