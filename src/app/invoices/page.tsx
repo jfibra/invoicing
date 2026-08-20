@@ -336,6 +336,7 @@ function CommissionInvoicesContent() {
     total_commission_received: 0,
     total_net: 0,
     total_vat: 0,
+    total_deductibles: 0,
     total_gross: 0,
   });
   const [historySearch, setHistorySearch] = useState("");
@@ -1477,10 +1478,10 @@ function CommissionInvoicesContent() {
         {viewMode === "HISTORY" && (
           <div className="space-y-6">
             {/* Summary KPI Overview Header */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+              <div className="bg-white p-4.5 rounded-3xl border border-slate-200 shadow-xs space-y-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-                  Total Saved Invoices
+                  Saved Invoices
                 </span>
                 <span className="text-2xl font-black text-slate-900 block">{historyKpis.total_count}</span>
                 <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
@@ -1488,44 +1489,56 @@ function CommissionInvoicesContent() {
                 </span>
               </div>
 
-              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-1">
+              <div className="bg-white p-4.5 rounded-3xl border border-slate-200 shadow-xs space-y-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-                  Total Comm. Received
+                  Comm. Received
                 </span>
-                <span className="text-2xl font-black text-blue-600 font-mono block">
+                <span className="text-xl font-black text-blue-600 font-mono block truncate" title={Number(historyKpis.total_commission_received || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}>
                   {Number(historyKpis.total_commission_received || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
-                <span className="text-[10px] text-blue-600 font-semibold">Gross Commission Received</span>
+                <span className="text-[10px] text-blue-600 font-semibold">Gross Received</span>
               </div>
 
-              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-1">
+              <div className="bg-white p-4.5 rounded-3xl border border-slate-200 shadow-xs space-y-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-                  Net Commission Volume
+                  Net Volume
                 </span>
-                <span className="text-2xl font-black text-slate-900 font-mono block">
+                <span className="text-xl font-black text-slate-900 font-mono block truncate" title={Number(historyKpis.total_net).toLocaleString("en-US", { minimumFractionDigits: 2 })}>
                   {Number(historyKpis.total_net).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
-                <span className="text-[10px] text-slate-500 font-semibold">Subtotal before VAT</span>
+                <span className="text-[10px] text-slate-500 font-semibold">Before Deductions</span>
               </div>
 
-              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-                  Total VAT Collected
+              <div className="bg-gradient-to-br from-amber-50/70 to-white p-4.5 rounded-3xl border border-amber-200/80 shadow-xs space-y-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 block">
+                  Total Deductibles
                 </span>
-                <span className="text-2xl font-black text-red-600 font-mono block">
+                <span className="text-xl font-black text-amber-700 font-mono block truncate" title={`-${Number(historyKpis.total_deductibles || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`}>
+                  -{Number(historyKpis.total_deductibles || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                </span>
+                <span className="text-[10px] text-amber-700 font-semibold flex items-center gap-1">
+                  <Scissors className="w-3 h-3 text-amber-600" /> Itemized Deductions
+                </span>
+              </div>
+
+              <div className="bg-white p-4.5 rounded-3xl border border-slate-200 shadow-xs space-y-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
+                  Total VAT
+                </span>
+                <span className="text-xl font-black text-red-600 font-mono block truncate" title={Number(historyKpis.total_vat).toLocaleString("en-US", { minimumFractionDigits: 2 })}>
                   {Number(historyKpis.total_vat).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
                 <span className="text-[10px] text-slate-500 font-semibold">Tax Compliance</span>
               </div>
 
-              <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-1">
+              <div className="bg-white p-4.5 rounded-3xl border border-slate-200 shadow-xs space-y-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-                  Gross Invoice Volume
+                  Gross Volume
                 </span>
-                <span className="text-2xl font-black text-emerald-600 font-mono block">
+                <span className="text-xl font-black text-emerald-600 font-mono block truncate" title={Number(historyKpis.total_gross).toLocaleString("en-US", { minimumFractionDigits: 2 })}>
                   {Number(historyKpis.total_gross).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </span>
-                <span className="text-[10px] text-emerald-600 font-semibold">Total Payable Amount</span>
+                <span className="text-[10px] text-emerald-600 font-semibold">Total Payable</span>
               </div>
             </div>
 
@@ -1616,20 +1629,33 @@ function CommissionInvoicesContent() {
                     <span>Export CSV Report</span>
                   </button>
 
-                  <button
-                    onClick={() => {
-                      setHistorySearch("");
-                      setHistoryType("");
-                      setHistoryStatus("");
-                      setHistoryYear("");
-                      setHistoryHasDeductible("");
-                      setHistoryPage(1);
-                    }}
-                    className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    Clear Filters
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const activeCount = [historySearch.trim(), historyType, historyStatus, historyYear, historyHasDeductible].filter(Boolean).length;
+                      if (activeCount === 0) return null;
+                      return (
+                        <span className="px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 text-[10px] font-bold flex items-center gap-1 border border-red-200 shadow-2xs">
+                          <Sparkles className="w-3 h-3 text-red-600" />
+                          <span>{activeCount} Filter{activeCount > 1 ? "s" : ""} Active</span>
+                        </span>
+                      );
+                    })()}
+
+                    <button
+                      onClick={() => {
+                        setHistorySearch("");
+                        setHistoryType("");
+                        setHistoryStatus("");
+                        setHistoryYear("");
+                        setHistoryHasDeductible("");
+                        setHistoryPage(1);
+                      }}
+                      className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1 cursor-pointer"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Clear Filters
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1796,15 +1822,31 @@ function CommissionInvoicesContent() {
                                   </button>
                                 )}
                               </div>
-                              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                              <div className="flex items-center gap-1.5 flex-wrap mt-1">
                                 <span className="text-[10px] text-slate-400">
                                   {inv.issued_date ? new Date(inv.issued_date).toISOString().slice(0, 10) : "N/A"} • {inv.invoice_type}
                                 </span>
+                                {inv.status === "PAID" ? (
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-emerald-100 text-emerald-800 text-[9px] font-bold border border-emerald-300/60" title="Invoice Payment Completed">
+                                    <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                                    <span>PAID</span>
+                                  </span>
+                                ) : inv.status === "CANCELLED" ? (
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-rose-100 text-rose-800 text-[9px] font-bold border border-rose-300/60" title="Invoice Cancelled">
+                                    <X className="w-2.5 h-2.5 text-rose-600" />
+                                    <span>CANCELLED</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-blue-100 text-blue-800 text-[9px] font-bold border border-blue-300/60" title="Invoice Issued">
+                                    <FileText className="w-2.5 h-2.5 text-blue-600" />
+                                    <span>ISSUED</span>
+                                  </span>
+                                )}
                                 {hasDeductibles && (
                                   <button
                                     type="button"
                                     onClick={() => setViewingDeductiblesInvoice(inv)}
-                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-100/90 text-amber-900 text-[9px] font-bold hover:bg-amber-200 transition-colors cursor-pointer border border-amber-300/60"
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md bg-amber-100/90 text-amber-900 text-[9px] font-bold hover:bg-amber-200 transition-colors cursor-pointer border border-amber-300/60"
                                     title="Invoice has itemized deductibles recorded"
                                   >
                                     <Scissors className="w-2.5 h-2.5 text-amber-700" />

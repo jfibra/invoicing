@@ -20,6 +20,8 @@ import {
   ChevronRight,
   ChevronLeft,
   Save,
+  Copy,
+  CheckCircle2,
 } from "lucide-react";
 import PageLoader from "@/components/PageLoader";
 
@@ -68,6 +70,14 @@ function TrnLibraryContent() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("");
   const [filterCountry, setFilterCountry] = useState("");
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+
+  const handleCopyTrn = (id: number, tin: string) => {
+    if (!tin) return;
+    navigator.clipboard.writeText(tin);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   // Form State
   const [formData, setFormData] = useState({
@@ -777,41 +787,86 @@ function TrnLibraryContent() {
                       </td>
                     </tr>
                   ) : (
-                    records.map((rec) => (
-                      <tr key={rec.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-4 px-4 font-black text-slate-900">
-                          {rec.company_name}
-                          {rec.trade_license_number && (
-                            <span className="text-[10px] text-slate-400 block font-normal">
-                              Lic: {rec.trade_license_number}
+                    records.map((rec) => {
+                      const initials = (rec.company_name || "")
+                        .split(" ")
+                        .map((w: string) => w[0])
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase() || "CO";
+
+                      return (
+                        <tr key={rec.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-xl bg-slate-900 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                                {initials}
+                              </div>
+                              <div>
+                                <span className="font-black text-slate-900 dark:text-slate-100 text-xs block">
+                                  {rec.company_name}
+                                </span>
+                                {rec.trade_license_number && (
+                                  <span className="text-[10px] text-slate-400 block font-normal">
+                                    Lic: {rec.trade_license_number}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-mono font-extrabold text-slate-900 dark:text-slate-100 text-[11px]">
+                                {rec.tin_number}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyTrn(rec.id, rec.tin_number)}
+                                className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-bold transition-colors cursor-pointer flex items-center gap-1 border border-slate-200 dark:border-slate-700"
+                                title="Copy TRN to clipboard"
+                              >
+                                {copiedId === rec.id ? (
+                                  <span className="text-emerald-600 font-extrabold flex items-center gap-0.5">
+                                    <Check className="w-3 h-3" /> Copied!
+                                  </span>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3 h-3" />
+                                    <span>Copy</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${
+                                rec.entity_type === "SALES"
+                                  ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800"
+                                  : "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-800"
+                              }`}
+                            >
+                              {rec.entity_type}
                             </span>
-                          )}
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-300 font-mono font-extrabold text-slate-800 text-[11px]">
-                            {rec.tin_number}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4">
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${
-                              rec.entity_type === "SALES"
-                                ? "bg-blue-50 text-blue-700 border-blue-200"
-                                : "bg-red-50 text-red-700 border-red-200"
-                            }`}
-                          >
-                            {rec.entity_type}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 font-bold text-slate-700">
-                          {rec.country_code === "UAE" ? "UAE (15-Digit TRN)" : "Philippines (BIR TIN)"}
-                        </td>
-                        <td className="py-4 px-4 text-slate-600 max-w-xs truncate" title={rec.primary_address || rec.address}>
-                          {rec.primary_address || rec.address || "—"}
-                        </td>
-                        <td className="py-4 px-4 text-slate-600 font-mono text-[11px]">
-                          {rec.primary_contact_name || rec.primary_contact_email || rec.primary_iban || rec.iban || "—"}
-                        </td>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-slate-700 dark:text-slate-300 text-xs">
+                                {rec.country_code === "UAE" ? "UAE TRN" : "Philippines TIN"}
+                              </span>
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-emerald-100 text-emerald-800 text-[9px] font-bold border border-emerald-300/60">
+                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                                <span>Verified</span>
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 text-slate-600 dark:text-slate-400 max-w-xs truncate" title={rec.primary_address || rec.address}>
+                            {rec.primary_address || rec.address || "—"}
+                          </td>
+                          <td className="py-4 px-4 text-slate-600 dark:text-slate-400 font-mono text-[11px]">
+                            {rec.primary_contact_name || rec.primary_contact_email || rec.primary_iban || rec.iban || "—"}
+                          </td>
                         <td className="py-4 px-4 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-2">
                             <Link
@@ -831,8 +886,9 @@ function TrnLibraryContent() {
                           </div>
                         </td>
                       </tr>
-                    ))
-                  )}
+                    );
+                  })
+                )}
                 </tbody>
               </table>
             </div>

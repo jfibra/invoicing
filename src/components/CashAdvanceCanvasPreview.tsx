@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
-import { Download, Sparkles, CheckCircle2, Coins, Calendar, ShieldCheck, Landmark } from "lucide-react";
+import { Download, Sparkles, Printer, CheckCircle2, Coins, Calendar, ShieldCheck, Landmark } from "lucide-react";
 
 export interface CashAdvancePaymentRecord {
   id: number;
@@ -40,6 +40,8 @@ export interface CashAdvanceCanvasData {
   addressLine1?: string;
   cityCountry?: string;
   logoUrl?: string;
+  notedBy?: string;
+  receivedBy?: string;
 
   // Specific to Repayment Receipt mode
   paymentRecord?: CashAdvancePaymentRecord;
@@ -53,28 +55,31 @@ export default function CashAdvanceCanvasPreview({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [faLoaded, setFaLoaded] = useState(false);
   const [loadedLogo, setLoadedLogo] = useState<HTMLImageElement | null>(null);
+  const [loadedBg, setLoadedBg] = useState<HTMLImageElement | null>(null);
 
   const curr = data.currency || "AED";
-  const companyName = data.companyName || "FHI Global";
+  const companyName = data.companyName || "FHI Global Property LLC";
 
-  // Preload & Cache Logo Image for Canvas
+  // Preload & Cache Architectural Background Image
   useEffect(() => {
-    let rawUrl = data.logoUrl || "/leuteriorealty.svg";
-    if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
-      rawUrl = `/api/proxy-image?url=${encodeURIComponent(rawUrl)}`;
-    }
+    const bgImg = new Image();
+    bgImg.src = "/images/invoice_bg.jpg";
+    bgImg.onload = () => setLoadedBg(bgImg);
+    bgImg.onerror = () => {
+      setLoadedBg(null);
+    };
+  }, []);
 
+  // Preload & Cache Official FHI Logo Image (/fhi.png)
+  useEffect(() => {
+    const rawUrl = "/fhi.png";
     const img = new Image();
     img.src = rawUrl;
     img.onload = () => setLoadedLogo(img);
     img.onerror = () => {
-      if (rawUrl !== "/leuteriorealty.svg") {
-        const fallback = new Image();
-        fallback.src = "/leuteriorealty.svg";
-        fallback.onload = () => setLoadedLogo(fallback);
-      }
+      setLoadedLogo(null);
     };
-  }, [data.logoUrl]);
+  }, []);
 
   // Preload Font Awesome 6 Solid Font
   useEffect(() => {
@@ -111,27 +116,34 @@ export default function CashAdvanceCanvasPreview({
     canvas.width = width;
     canvas.height = height;
 
-    // 1. Off-white / light slate background (#F8FAFC)
-    ctx.fillStyle = "#F8FAFC";
+    // 1. Pure White Base
+    ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, width, height);
 
-    // Subtle Blueprint Architecture Background Grid Lines
-    ctx.strokeStyle = "#E2E8F0";
-    ctx.lineWidth = 0.5;
-    ctx.globalAlpha = 0.3;
-    for (let x = 0; x < width; x += 60) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, height);
-      ctx.stroke();
+    // 2. Draw Luxury Architectural Background Watermark if loaded
+    if (loadedBg) {
+      ctx.save();
+      ctx.globalAlpha = 0.45;
+      ctx.drawImage(loadedBg, 0, 0, width, height);
+      ctx.restore();
+    } else {
+      ctx.strokeStyle = "#E2E8F0";
+      ctx.lineWidth = 0.5;
+      ctx.globalAlpha = 0.3;
+      for (let x = 0; x < width; x += 60) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < height; y += 60) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1.0;
     }
-    for (let y = 0; y < height; y += 60) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(width, y);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1.0;
 
     // Helper: Font Awesome Icons
     const drawFAIcon = (
@@ -139,8 +151,8 @@ export default function CashAdvanceCanvasPreview({
       unicodeChar: string,
       x: number,
       y: number,
-      fontSize: number = 16,
-      color: string = "#E11D2E"
+      fontSize: number = 18,
+      color: string = "#DC2626"
     ) => {
       context.save();
       context.fillStyle = color;
@@ -150,88 +162,113 @@ export default function CashAdvanceCanvasPreview({
     };
 
     // ==========================================================
-    // TOP HEADER SECTION: Sleek Dark Slate Banner (#0F172A)
+    // TOP HEADER SECTION: Expanded Clean Header
     // ==========================================================
-    const headerH = 210;
-    ctx.fillStyle = "#0F172A";
+    const headerH = 245;
+
+    // Header Background: Crisp White
+    ctx.fillStyle = "rgba(255, 255, 255, 0.96)";
     ctx.fillRect(0, 0, width, headerH);
 
-    // Red Accent Stripe (#E11D2E)
-    ctx.fillStyle = "#E11D2E";
-    ctx.beginPath();
-    ctx.moveTo(0, headerH);
-    ctx.lineTo(width - 120, headerH);
-    ctx.lineTo(width - 90, headerH + 6);
-    ctx.lineTo(width, headerH + 6);
-    ctx.lineTo(width, headerH + 11);
-    ctx.lineTo(0, headerH + 11);
-    ctx.closePath();
-    ctx.fill();
+    // Top Crimson Accent Stripe (6px clean uniform line)
+    ctx.fillStyle = "#DC2626";
+    ctx.fillRect(0, 0, width, 6);
 
-    // Render Preloaded Logo
+    // Render Preloaded Official FHI Logo (Prominent)
     if (loadedLogo) {
+      const maxW = 340;
+      const maxH = 110;
       const aspect = loadedLogo.width / loadedLogo.height;
-      const maxW = 240;
-      const maxH = 75;
       let w = maxW;
       let h = maxW / aspect;
       if (h > maxH) {
         h = maxH;
         w = maxH * aspect;
       }
-      ctx.drawImage(loadedLogo, 60, 30, w, h);
+      ctx.drawImage(loadedLogo, 60, 18, w, h);
     } else {
-      ctx.fillStyle = "#E11D2E";
-      ctx.font = "900 24px sans-serif";
-      ctx.fillText(companyName, 60, 65);
+      ctx.fillStyle = "#DC2626";
+      ctx.font = "900 32px sans-serif";
+      ctx.fillText(companyName, 60, 70);
     }
 
-    // Address & TRN
-    drawFAIcon(ctx, "\uf3c5", 60, 140, 14, "#E11D2E");
-    ctx.fillStyle = "#94A3B8";
-    ctx.font = "14px sans-serif";
-    ctx.fillText(data.addressLine1 || "Opus Tower by Omniyat, Business Bay", 80, 140);
-    ctx.fillText(data.cityCountry || "Dubai, United Arab Emirates", 80, 162);
+    // Address & Location
+    drawFAIcon(ctx, "\uf3c5", 60, 146, 15, "#DC2626");
+    ctx.fillStyle = "#334155";
+    ctx.font = "bold 14px sans-serif";
+    ctx.fillText(data.addressLine1 || "Office no 98-3001, Owned by Arenco Marlin Investment LLC, Al Muraqqabat", 82, 146);
 
-    drawFAIcon(ctx, "\uf095", 60, 186, 12, "#E11D2E");
-    ctx.fillStyle = "#E11D2E";
+    ctx.fillStyle = "#64748B";
+    ctx.font = "14px sans-serif";
+    ctx.fillText(data.cityCountry || "Dubai, United Arab Emirates", 82, 168);
+
+    // TRN Badge Container
+    ctx.fillStyle = "#FEF2F2";
+    ctx.beginPath();
+    ctx.roundRect(60, 186, 310, 34, [8]);
+    ctx.fill();
+    ctx.strokeStyle = "#FECACA";
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    drawFAIcon(ctx, "\uf095", 74, 209, 14, "#DC2626");
+    ctx.fillStyle = "#991B1B";
     ctx.font = "bold 14px monospace";
-    ctx.fillText(`TRN: ${data.trnNumber || "100293847500003"}`, 80, 186);
+    ctx.fillText(`TRN: ${data.trnNumber || "105088815300001"}`, 96, 209);
 
     // Right Header Title & Ref Code
     ctx.textAlign = "right";
-    ctx.fillStyle = "#FFFFFF";
-    ctx.font = "900 28px sans-serif";
+    ctx.fillStyle = "#0F172A";
+    ctx.font = "900 38px sans-serif";
 
     const titleText = data.mode === "REPAYMENT_RECEIPT" ? "REPAYMENT RECEIPT" : "CASH ADVANCE VOUCHER";
     const refCode = data.mode === "REPAYMENT_RECEIPT" && data.paymentRecord
       ? data.paymentRecord.receipt_number
       : data.cashAdvanceCode;
 
-    ctx.fillText(titleText, width - 60, 68);
+    ctx.fillText(titleText, width - 60, 64);
 
-    ctx.fillStyle = "#E11D2E";
+    // Voucher Number Pill
+    const pillW = Math.max(300, refCode.length * 15 + 36);
+    const pillX = width - 60 - pillW;
+
+    ctx.fillStyle = "#FEF2F2";
+    ctx.beginPath();
+    ctx.roundRect(pillX, 82, pillW, 42, [10]);
+    ctx.fill();
+    ctx.strokeStyle = "#F87171";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = "#DC2626";
     ctx.font = "bold 20px monospace";
-    ctx.fillText(refCode, width - 60, 104);
+    ctx.fillText(refCode, width - 78, 110);
 
-    drawFAIcon(ctx, "\uf133", width - 175, 140, 13, "#94A3B8");
-    ctx.fillStyle = "#94A3B8";
-    ctx.font = "14px sans-serif";
+    drawFAIcon(ctx, "\uf133", width - 200, 165, 15, "#64748B");
+    ctx.fillStyle = "#334155";
+    ctx.font = "bold 15px sans-serif";
     const displayDate = data.mode === "REPAYMENT_RECEIPT" && data.paymentRecord
       ? data.paymentRecord.payment_date
       : data.issuedDate;
-    ctx.fillText(`Date: ${displayDate}`, width - 60, 140);
+    ctx.fillText(`Date: ${displayDate}`, width - 60, 165);
 
-    drawFAIcon(ctx, "\uf51e", width - 155, 164, 13, "#94A3B8");
-    ctx.fillText(`Currency: ${curr}`, width - 60, 164);
+    drawFAIcon(ctx, "\uf51e", width - 175, 195, 15, "#64748B");
+    ctx.fillStyle = "#334155";
+    ctx.fillText(`Currency: ${curr}`, width - 60, 195);
     ctx.textAlign = "left";
 
+    // Header Divider
+    ctx.fillStyle = "#DC2626";
+    ctx.fillRect(0, headerH - 4, width, 4);
+    ctx.fillStyle = "#E2E8F0";
+    ctx.fillRect(0, headerH, width, 1);
+
     // ==========================================================
-    // MIDDLE SECTION: 2 SIDE-BY-SIDE INFORMATION CARDS
+    // MIDDLE SECTION: 2 SIDE-BY-SIDE INFORMATION CARDS (Expanded)
     // ==========================================================
-    const cardY = 245;
+    const cardY = 270;
     const cardW = 520;
-    const cardH = 215;
+    const cardH = 245;
 
     // CARD 1: AGENT INFORMATION
     const card1X = 60;
@@ -239,54 +276,54 @@ export default function CashAdvanceCanvasPreview({
     ctx.beginPath();
     ctx.roundRect(card1X, cardY, cardW, cardH, [16]);
     ctx.fill();
-    ctx.strokeStyle = "#E2E8F0";
+    ctx.strokeStyle = "#CBD5E1";
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
     ctx.fillStyle = "#0F172A";
     ctx.beginPath();
-    ctx.roundRect(card1X, cardY, cardW, 42, [14, 14, 0, 0]);
+    ctx.roundRect(card1X, cardY, cardW, 46, [14, 14, 0, 0]);
     ctx.fill();
 
-    drawFAIcon(ctx, "\uf007", card1X + 22, cardY + 26, 14, "#FFFFFF");
+    drawFAIcon(ctx, "\uf007", card1X + 22, cardY + 29, 16, "#FFFFFF");
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "bold 13px sans-serif";
-    ctx.fillText("AGENT / RECIPIENT INFORMATION", card1X + 44, cardY + 26);
-
-    ctx.fillStyle = "#6B7280";
-    ctx.font = "13px sans-serif";
-    ctx.fillText("Agent Name:", card1X + 25, cardY + 75);
-    ctx.fillStyle = "#111827";
-    ctx.font = "bold 18px sans-serif";
-    ctx.fillText(data.agentName, card1X + 135, cardY + 75);
-
-    ctx.fillStyle = "#6B7280";
-    ctx.font = "13px sans-serif";
-    ctx.fillText("Agent Code:", card1X + 25, cardY + 110);
-    ctx.fillStyle = "#111827";
-    ctx.font = "bold 14px monospace";
-    ctx.fillText(data.agentCode || "N/A", card1X + 135, cardY + 110);
-
-    ctx.fillStyle = "#6B7280";
-    ctx.font = "13px sans-serif";
-    ctx.fillText("Sales Team:", card1X + 25, cardY + 145);
-    ctx.fillStyle = "#111827";
     ctx.font = "bold 14px sans-serif";
-    ctx.fillText(data.teamName || "General Roster", card1X + 135, cardY + 145);
+    ctx.fillText("AGENT / RECIPIENT INFORMATION", card1X + 46, cardY + 29);
 
-    ctx.fillStyle = "#6B7280";
-    ctx.font = "13px sans-serif";
-    ctx.fillText("Unit / Subteam:", card1X + 25, cardY + 180);
-    ctx.fillStyle = "#111827";
-    ctx.font = "bold 14px sans-serif";
-    ctx.fillText(data.subteamName || "Dubai Core Unit", card1X + 135, cardY + 180);
+    ctx.fillStyle = "#64748B";
+    ctx.font = "14px sans-serif";
+    ctx.fillText("Agent Name:", card1X + 25, cardY + 84);
+    ctx.fillStyle = "#0F172A";
+    ctx.font = "bold 20px sans-serif";
+    ctx.fillText(data.agentName, card1X + 140, cardY + 84);
+
+    ctx.fillStyle = "#64748B";
+    ctx.font = "14px sans-serif";
+    ctx.fillText("Agent Code:", card1X + 25, cardY + 122);
+    ctx.fillStyle = "#0F172A";
+    ctx.font = "bold 16px monospace";
+    ctx.fillText(data.agentCode || "N/A", card1X + 140, cardY + 122);
+
+    ctx.fillStyle = "#64748B";
+    ctx.font = "14px sans-serif";
+    ctx.fillText("Sales Team:", card1X + 25, cardY + 160);
+    ctx.fillStyle = "#1E293B";
+    ctx.font = "bold 16px sans-serif";
+    ctx.fillText(data.teamName || "General Roster", card1X + 140, cardY + 160);
+
+    ctx.fillStyle = "#64748B";
+    ctx.font = "14px sans-serif";
+    ctx.fillText("Unit / Subteam:", card1X + 25, cardY + 198);
+    ctx.fillStyle = "#1E293B";
+    ctx.font = "bold 16px sans-serif";
+    ctx.fillText(data.subteamName || "Dubai Core Unit", card1X + 140, cardY + 198);
 
     // Watermark Icon
     ctx.fillStyle = "#F1F5F9";
     ctx.beginPath();
-    ctx.arc(card1X + 440, cardY + 125, 45, 0, Math.PI * 2);
+    ctx.arc(card1X + 440, cardY + 145, 52, 0, Math.PI * 2);
     ctx.fill();
-    drawFAIcon(ctx, "\uf007", card1X + 420, cardY + 140, 48, "#CBD5E1");
+    drawFAIcon(ctx, "\uf007", card1X + 418, cardY + 162, 54, "#CBD5E1");
 
     // CARD 2: CASH ADVANCE TERMS & SUMMARY
     const card2X = 620;
@@ -294,94 +331,94 @@ export default function CashAdvanceCanvasPreview({
     ctx.beginPath();
     ctx.roundRect(card2X, cardY, cardW, cardH, [16]);
     ctx.fill();
-    ctx.strokeStyle = "#E2E8F0";
+    ctx.strokeStyle = "#CBD5E1";
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    ctx.fillStyle = "#E11D2E";
+    ctx.fillStyle = "#DC2626";
     ctx.beginPath();
-    ctx.roundRect(card2X, cardY, cardW, 42, [14, 14, 0, 0]);
+    ctx.roundRect(card2X, cardY, cardW, 46, [14, 14, 0, 0]);
     ctx.fill();
 
-    drawFAIcon(ctx, "\uf0d6", card2X + 22, cardY + 26, 14, "#FFFFFF");
+    drawFAIcon(ctx, "\uf0d6", card2X + 22, cardY + 29, 16, "#FFFFFF");
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "bold 13px sans-serif";
-    ctx.fillText("CASH ADVANCE TERMS & STATUS", card2X + 44, cardY + 26);
+    ctx.font = "bold 14px sans-serif";
+    ctx.fillText("CASH ADVANCE TERMS & STATUS", card2X + 46, cardY + 29);
 
-    ctx.fillStyle = "#6B7280";
-    ctx.font = "13px sans-serif";
-    ctx.fillText("Advance Code:", card2X + 25, cardY + 70);
-    ctx.fillStyle = "#111827";
+    ctx.fillStyle = "#64748B";
+    ctx.font = "14px sans-serif";
+    ctx.fillText("Advance Code:", card2X + 25, cardY + 80);
+    ctx.fillStyle = "#0F172A";
+    ctx.font = "bold 16px monospace";
+    ctx.fillText(data.cashAdvanceCode, card2X + 150, cardY + 80);
+
+    ctx.fillStyle = "#64748B";
+    ctx.font = "14px sans-serif";
+    ctx.fillText("Repayment Term:", card2X + 25, cardY + 114);
+    ctx.fillStyle = "#0F172A";
+    ctx.font = "bold 15px sans-serif";
+    ctx.fillText(`${data.repaymentTermValue} ${data.repaymentTermType}`, card2X + 150, cardY + 114);
+
+    ctx.fillStyle = "#64748B";
+    ctx.font = "14px sans-serif";
+    ctx.fillText("Installment Amt:", card2X + 25, cardY + 148);
+    ctx.fillStyle = "#DC2626";
+    ctx.font = "bold 15px monospace";
+    ctx.fillText(`${curr} ${Number(data.installmentAmount).toLocaleString("en-US", { minimumFractionDigits: 2 })} / ${data.repaymentTermType === "WEEKS" ? "wk" : "mo"}`, card2X + 150, cardY + 148);
+
+    ctx.fillStyle = "#64748B";
+    ctx.font = "14px sans-serif";
+    ctx.fillText("Schedule Due:", card2X + 25, cardY + 180);
+    ctx.fillStyle = "#0F172A";
     ctx.font = "bold 14px monospace";
-    ctx.fillText(data.cashAdvanceCode, card2X + 145, cardY + 70);
+    ctx.fillText(`${data.dueStartDate} to ${data.dueEndDate}`, card2X + 150, cardY + 180);
 
-    ctx.fillStyle = "#6B7280";
-    ctx.font = "13px sans-serif";
-    ctx.fillText("Repayment Term:", card2X + 25, cardY + 98);
-    ctx.fillStyle = "#111827";
-    ctx.font = "bold 13px sans-serif";
-    ctx.fillText(`${data.repaymentTermValue} ${data.repaymentTermType}`, card2X + 145, cardY + 98);
-
-    ctx.fillStyle = "#6B7280";
-    ctx.font = "13px sans-serif";
-    ctx.fillText("Installment Amt:", card2X + 25, cardY + 126);
-    ctx.fillStyle = "#E11D2E";
-    ctx.font = "bold 13px monospace";
-    ctx.fillText(`${curr} ${Number(data.installmentAmount).toLocaleString("en-US", { minimumFractionDigits: 2 })} / ${data.repaymentTermType === "WEEKS" ? "wk" : "mo"}`, card2X + 145, cardY + 126);
-
-    ctx.fillStyle = "#6B7280";
-    ctx.font = "13px sans-serif";
-    ctx.fillText("Schedule Due:", card2X + 25, cardY + 154);
-    ctx.fillStyle = "#111827";
-    ctx.font = "bold 12px monospace";
-    ctx.fillText(`${data.dueStartDate} to ${data.dueEndDate}`, card2X + 145, cardY + 154);
-
-    ctx.fillStyle = "#6B7280";
-    ctx.font = "13px sans-serif";
-    ctx.fillText("Advance Status:", card2X + 25, cardY + 182);
-    ctx.fillStyle = data.status === "PAID" ? "#059669" : "#E11D2E";
-    ctx.font = "bold 13px sans-serif";
-    ctx.fillText(data.status, card2X + 145, cardY + 182);
+    ctx.fillStyle = "#64748B";
+    ctx.font = "14px sans-serif";
+    ctx.fillText("Advance Status:", card2X + 25, cardY + 212);
+    ctx.fillStyle = data.status === "PAID" ? "#059669" : "#DC2626";
+    ctx.font = "bold 14px sans-serif";
+    ctx.fillText(data.status, card2X + 150, cardY + 212);
 
     ctx.fillStyle = "#FEF2F2";
     ctx.beginPath();
-    ctx.arc(card2X + 440, cardY + 125, 45, 0, Math.PI * 2);
+    ctx.arc(card2X + 440, cardY + 145, 52, 0, Math.PI * 2);
     ctx.fill();
-    drawFAIcon(ctx, "\uf0d6", card2X + 420, cardY + 140, 48, "#FCA5A5");
+    drawFAIcon(ctx, "\uf0d6", card2X + 418, cardY + 162, 54, "#FCA5A5");
 
     // ==========================================================
-    // DISBURSEMENT / REPAYMENT FINANCIAL SUMMARY TABLE
+    // DISBURSEMENT / REPAYMENT FINANCIAL SUMMARY TABLE (Expanded)
     // ==========================================================
-    const tableY = 485;
+    const tableY = 535;
     const tableW = 1080;
 
     ctx.fillStyle = "#0F172A";
     ctx.beginPath();
-    ctx.roundRect(60, tableY, tableW, 46, [12, 12, 0, 0]);
+    ctx.roundRect(60, tableY, tableW, 48, [12, 12, 0, 0]);
     ctx.fill();
 
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "bold 13px sans-serif";
-    ctx.fillText("DESCRIPTION / TRANSACTION PARTICULAR", 85, tableY + 28);
+    ctx.font = "bold 14px sans-serif";
+    ctx.fillText("DESCRIPTION / TRANSACTION PARTICULAR", 85, tableY + 30);
 
     ctx.textAlign = "right";
-    ctx.fillText(`AMOUNT (${curr})`, 850, tableY + 28);
-    ctx.fillText(`TOTAL (${curr})`, 1120, tableY + 28);
+    ctx.fillText(`AMOUNT (${curr})`, 850, tableY + 30);
+    ctx.fillText(`TOTAL (${curr})`, 1140 - 20, tableY + 30);
     ctx.textAlign = "left";
 
     // Row 1: Primary Transaction Line
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(60, tableY + 46, tableW, 85);
+    ctx.fillRect(60, tableY + 48, tableW, 90);
     ctx.strokeStyle = "#CBD5E1";
     ctx.lineWidth = 1;
-    ctx.strokeRect(60, tableY + 46, tableW, 85);
+    ctx.strokeRect(60, tableY + 48, tableW, 90);
 
-    ctx.fillStyle = "#E11D2E";
+    ctx.fillStyle = "#DC2626";
     ctx.beginPath();
-    ctx.arc(98, tableY + 88, 22, 0, Math.PI * 2);
+    ctx.arc(98, tableY + 93, 24, 0, Math.PI * 2);
     ctx.fill();
 
-    drawFAIcon(ctx, data.mode === "REPAYMENT_RECEIPT" ? "\uf00c" : "\uf0d6", 88, tableY + 95, 18, "#FFFFFF");
+    drawFAIcon(ctx, data.mode === "REPAYMENT_RECEIPT" ? "\uf00c" : "\uf0d6", 87, tableY + 101, 19, "#FFFFFF");
 
     const rowTitle = data.mode === "REPAYMENT_RECEIPT"
       ? `Cash Advance Partial/Full Repayment Receipt (${data.paymentRecord?.payment_method || 'BANK_TRANSFER'})`
@@ -391,195 +428,243 @@ export default function CashAdvanceCanvasPreview({
       ? data.paymentRecord.payment_amount
       : data.advanceAmount;
 
-    ctx.fillStyle = "#111827";
-    ctx.font = "bold 16px sans-serif";
-    ctx.fillText(rowTitle, 135, tableY + 82);
+    ctx.fillStyle = "#0F172A";
+    ctx.font = "bold 18px sans-serif";
+    ctx.fillText(rowTitle, 135, tableY + 84);
 
-    ctx.fillStyle = "#6B7280";
-    ctx.font = "13px sans-serif";
+    ctx.fillStyle = "#64748B";
+    ctx.font = "14px sans-serif";
     const rowSubtext = data.mode === "REPAYMENT_RECEIPT"
       ? `Receipt Ref: ${data.paymentRecord?.receipt_number || 'N/A'} • CA Ref: ${data.cashAdvanceCode}`
       : `Repayment Schedule: ${data.repaymentTermValue} installments of ${curr} ${Number(data.installmentAmount).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
-    ctx.fillText(rowSubtext, 135, tableY + 106);
+    ctx.fillText(rowSubtext, 135, tableY + 110);
 
     ctx.textAlign = "right";
-    ctx.fillStyle = "#111827";
-    ctx.font = "bold 16px monospace";
-    ctx.fillText(mainRowAmount.toLocaleString("en-US", { minimumFractionDigits: 2 }), 850, tableY + 92);
-    ctx.fillText(mainRowAmount.toLocaleString("en-US", { minimumFractionDigits: 2 }), 1120, tableY + 92);
+    ctx.fillStyle = "#0F172A";
+    ctx.font = "bold 18px monospace";
+    ctx.fillText(mainRowAmount.toLocaleString("en-US", { minimumFractionDigits: 2 }), 850, tableY + 98);
+    ctx.fillText(mainRowAmount.toLocaleString("en-US", { minimumFractionDigits: 2 }), 1140 - 20, tableY + 98);
     ctx.textAlign = "left";
 
     // Summary Banner Row
-    const sumY = tableY + 131;
-    ctx.fillStyle = "#F1F5F9";
+    const sumY = tableY + 138;
+    ctx.fillStyle = "#F8FAFC";
     ctx.beginPath();
-    ctx.roundRect(60, sumY, tableW, 46, [0, 0, 12, 12]);
+    ctx.roundRect(60, sumY, tableW, 48, [0, 0, 12, 12]);
     ctx.fill();
     ctx.strokeStyle = "#CBD5E1";
-    ctx.strokeRect(60, sumY, tableW, 46);
+    ctx.strokeRect(60, sumY, tableW, 48);
 
-    drawFAIcon(ctx, "\uf1ec", 80, sumY + 28, 16, "#0F172A");
+    drawFAIcon(ctx, "\uf1ec", 80, sumY + 30, 17, "#0F172A");
     ctx.fillStyle = "#0F172A";
-    ctx.font = "bold 14px sans-serif";
-    ctx.fillText("TRANSACTION TOTAL", 108, sumY + 28);
+    ctx.font = "bold 15px sans-serif";
+    ctx.fillText("TRANSACTION TOTAL", 108, sumY + 30);
 
     ctx.textAlign = "right";
-    ctx.font = "11px sans-serif";
+    ctx.font = "12px sans-serif";
     ctx.fillStyle = "#64748B";
-    ctx.fillText(curr, 760, sumY + 26);
-    ctx.font = "bold 15px monospace";
+    ctx.fillText(curr, 750, sumY + 28);
+    ctx.font = "bold 17px monospace";
     ctx.fillStyle = "#0F172A";
-    ctx.fillText(mainRowAmount.toLocaleString("en-US", { minimumFractionDigits: 2 }), 850, sumY + 28);
+    ctx.fillText(mainRowAmount.toLocaleString("en-US", { minimumFractionDigits: 2 }), 850, sumY + 30);
 
     ctx.fillStyle = "#0F172A";
     ctx.beginPath();
-    ctx.roundRect(890, sumY, 250, 46, [0, 0, 12, 0]);
+    ctx.roundRect(880, sumY, 260, 48, [0, 0, 12, 0]);
     ctx.fill();
 
-    ctx.font = "11px sans-serif";
+    ctx.font = "12px sans-serif";
     ctx.fillStyle = "#94A3B8";
-    ctx.fillText(curr, 980, sumY + 26);
-    ctx.font = "900 18px monospace";
+    ctx.fillText(curr, 970, sumY + 28);
+    ctx.font = "900 20px monospace";
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillText(mainRowAmount.toLocaleString("en-US", { minimumFractionDigits: 2 }), 1120, sumY + 28);
+    ctx.fillText(mainRowAmount.toLocaleString("en-US", { minimumFractionDigits: 2 }), 1140 - 20, sumY + 30);
     ctx.textAlign = "left";
 
     // ==========================================================
-    // BOTTOM PAYMENT DETAILS & SUMMARY BOX
+    // BOTTOM PAYMENT DETAILS & SUMMARY BOX (Expanded)
     // ==========================================================
-    const botY = 680;
+    const botY = 735;
     const botW = 520;
 
-    // LEFT BOX: BANK / PAYMENT DETAILS
+    // LEFT BOX: BANK / PAYMENT DETAILS (x = 60, width = 520)
     ctx.fillStyle = "#FFFFFF";
     ctx.beginPath();
-    ctx.roundRect(60, botY, botW, 195, [16]);
+    ctx.roundRect(60, botY, botW, 205, [16]);
     ctx.fill();
-    ctx.strokeStyle = "#E2E8F0";
+    ctx.strokeStyle = "#CBD5E1";
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
     ctx.fillStyle = "#F8FAFC";
     ctx.beginPath();
-    ctx.roundRect(60, botY, botW, 40, [14, 14, 0, 0]);
+    ctx.roundRect(60, botY, botW, 42, [14, 14, 0, 0]);
     ctx.fill();
 
-    drawFAIcon(ctx, "\uf19c", 82, botY + 26, 14, "#0F172A");
+    drawFAIcon(ctx, "\uf19c", 82, botY + 27, 16, "#0F172A");
     ctx.fillStyle = "#0F172A";
-    ctx.font = "bold 13px sans-serif";
-    ctx.fillText("OFFICIAL PAYMENT ACKNOWLEDGEMENT", 106, botY + 26);
-
-    ctx.fillStyle = "#6B7280";
-    ctx.font = "13px sans-serif";
-    ctx.fillText("Issued By:", 85, botY + 70);
-    ctx.fillStyle = "#111827";
     ctx.font = "bold 14px sans-serif";
-    ctx.fillText(companyName, 220, botY + 70);
+    ctx.fillText("OFFICIAL PAYMENT ACKNOWLEDGEMENT", 108, botY + 27);
 
-    ctx.fillStyle = "#6B7280";
-    ctx.font = "13px sans-serif";
-    ctx.fillText("Recipient Agent:", 85, botY + 110);
-    ctx.fillStyle = "#111827";
-    ctx.font = "bold 14px sans-serif";
-    ctx.fillText(data.agentName, 220, botY + 110);
+    ctx.fillStyle = "#64748B";
+    ctx.font = "14px sans-serif";
+    ctx.fillText("Issued By:", 85, botY + 75);
+    ctx.fillStyle = "#0F172A";
+    ctx.font = "bold 15px sans-serif";
+    ctx.fillText(companyName, 220, botY + 75);
 
-    ctx.fillStyle = "#6B7280";
-    ctx.font = "13px sans-serif";
-    ctx.fillText("Payment Method:", 85, botY + 150);
-    ctx.fillStyle = "#111827";
-    ctx.font = "bold 14px monospace";
+    ctx.fillStyle = "#64748B";
+    ctx.font = "14px sans-serif";
+    ctx.fillText("Recipient Agent:", 85, botY + 116);
+    ctx.fillStyle = "#0F172A";
+    ctx.font = "bold 15px sans-serif";
+    ctx.fillText(data.agentName, 220, botY + 116);
+
+    ctx.fillStyle = "#64748B";
+    ctx.font = "14px sans-serif";
+    ctx.fillText("Payment Method:", 85, botY + 158);
+    ctx.fillStyle = "#0F172A";
+    ctx.font = "bold 15px monospace";
     const methodStr = data.mode === "REPAYMENT_RECEIPT" && data.paymentRecord
       ? data.paymentRecord.payment_method
       : "COMPANY DISBURSEMENT";
-    ctx.fillText(methodStr, 220, botY + 150);
+    ctx.fillText(methodStr, 220, botY + 158);
 
     // Watermark Bank Icon
     ctx.fillStyle = "#F1F5F9";
     ctx.beginPath();
-    ctx.arc(60 + 440, botY + 120, 35, 0, Math.PI * 2);
+    ctx.arc(60 + 440, botY + 125, 42, 0, Math.PI * 2);
     ctx.fill();
-    drawFAIcon(ctx, "\uf19c", 60 + 422, botY + 132, 38, "#CBD5E1");
+    drawFAIcon(ctx, "\uf19c", 60 + 420, botY + 138, 44, "#CBD5E1");
 
-    // RIGHT BOX: REPAYMENT BALANCE BREAKDOWN
+    // RIGHT BOX: REPAYMENT BALANCE BREAKDOWN (x = 620, width = 520, rightEdge = 1140)
     const rightBoxX = 620;
+    const rightBoxW = 520;
+    const rightEdge = rightBoxX + rightBoxW; // 1140
 
-    ctx.fillStyle = "#6B7280";
-    ctx.font = "14px sans-serif";
-    ctx.fillText("Total Disbursed Principal:", rightBoxX + 20, botY + 25);
+    ctx.fillStyle = "#475569";
+    ctx.font = "15px sans-serif";
+    ctx.fillText("Total Disbursed Principal:", rightBoxX + 15, botY + 28);
     ctx.textAlign = "right";
-    ctx.fillStyle = "#111827";
-    ctx.font = "bold 16px monospace";
-    ctx.fillText(`${curr} ${Number(data.advanceAmount).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, 1115, botY + 25);
+    ctx.fillStyle = "#0F172A";
+    ctx.font = "bold 18px monospace";
+    ctx.fillText(`${curr} ${Number(data.advanceAmount).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, rightEdge, botY + 28);
     ctx.textAlign = "left";
 
-    ctx.fillStyle = "#6B7280";
-    ctx.font = "14px sans-serif";
-    ctx.fillText("Total Repayments Made:", rightBoxX + 20, botY + 55);
+    ctx.fillStyle = "#475569";
+    ctx.font = "15px sans-serif";
+    ctx.fillText("Total Repayments Made:", rightBoxX + 15, botY + 62);
     ctx.textAlign = "right";
     ctx.fillStyle = "#059669";
-    ctx.font = "bold 16px monospace";
-    ctx.fillText(`+ ${curr} ${Number(data.totalPaidAmount).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, 1115, botY + 55);
+    ctx.font = "bold 18px monospace";
+    ctx.fillText(`+ ${curr} ${Number(data.totalPaidAmount).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, rightEdge, botY + 62);
     ctx.textAlign = "left";
 
-    ctx.fillStyle = "#E11D2E";
-    ctx.font = "14px sans-serif";
-    ctx.fillText("Outstanding Balance Due:", rightBoxX + 20, botY + 85);
+    ctx.fillStyle = "#DC2626";
+    ctx.font = "15px sans-serif";
+    ctx.fillText("Outstanding Balance Due:", rightBoxX + 15, botY + 94);
     ctx.textAlign = "right";
-    ctx.font = "bold 16px monospace";
-    ctx.fillText(`${curr} ${Number(data.balanceDue).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, 1115, botY + 85);
+    ctx.font = "bold 18px monospace";
+    ctx.fillText(`${curr} ${Number(data.balanceDue).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, rightEdge, botY + 94);
     ctx.textAlign = "left";
 
-    // GRAND HIGHLIGHT BOX (#E11D2E or #059669 if PAID)
-    const redBoxY = botY + 105;
-    const boxColor = data.status === "PAID" ? "#059669" : "#E11D2E";
+    // GRAND HIGHLIGHT BOX (#DC2626 or #059669 if PAID) -> Exactly aligned to right border
+    const redBoxY = botY + 110;
+    const boxColor = data.status === "PAID" ? "#059669" : "#DC2626";
 
     ctx.fillStyle = boxColor;
     ctx.beginPath();
-    ctx.roundRect(rightBoxX, redBoxY, 490, 75, [18]);
+    ctx.roundRect(rightBoxX, redBoxY, rightBoxW, 86, [18]);
     ctx.fill();
 
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "900 16px sans-serif";
+    ctx.font = "900 18px sans-serif";
     const boxLabel = data.mode === "REPAYMENT_RECEIPT" ? "PAYMENT RECEIVED" : "OUTSTANDING BALANCE";
-    ctx.fillText(boxLabel, rightBoxX + 30, redBoxY + 44);
+    ctx.fillText(boxLabel, rightBoxX + 30, redBoxY + 50);
 
     ctx.textAlign = "right";
-    ctx.font = "bold 14px sans-serif";
-    ctx.fillStyle = "#FCA5A5";
-    ctx.fillText(curr, 930, redBoxY + 30);
+    ctx.font = "bold 16px sans-serif";
+    ctx.fillStyle = "#FECACA";
+    ctx.fillText(curr, rightEdge - 230, redBoxY + 34);
 
-    ctx.font = "900 28px monospace";
+    ctx.font = "900 32px monospace";
     ctx.fillStyle = "#FFFFFF";
     const highlightAmt = data.mode === "REPAYMENT_RECEIPT" && data.paymentRecord
       ? data.paymentRecord.payment_amount
       : data.balanceDue;
-    ctx.fillText(highlightAmt.toLocaleString("en-US", { minimumFractionDigits: 2 }), 1105, redBoxY + 46);
+    ctx.fillText(highlightAmt.toLocaleString("en-US", { minimumFractionDigits: 2 }), rightEdge - 25, redBoxY + 52);
     ctx.textAlign = "left";
 
     // ==========================================================
-    // NOTES SECTION
+    // SIGNATURE & APPROVAL SECTION (Prominent)
     // ==========================================================
-    const notesY = 905;
-    drawFAIcon(ctx, "\uf15c", 60, notesY + 16, 14, "#0F172A");
+    const sigY = 980;
+
+    // LEFT: NOTED BY
+    drawFAIcon(ctx, "\uf304", 60, sigY, 17, "#0F172A");
+    ctx.fillStyle = "#0F172A";
+    ctx.font = "900 15px sans-serif";
+    ctx.fillText("NOTED BY:", 86, sigY);
 
     ctx.fillStyle = "#0F172A";
-    ctx.font = "bold 14px sans-serif";
-    ctx.fillText("REPAYMENT TERMS & REMARKS", 84, notesY + 16);
+    ctx.font = "bold 19px sans-serif";
+    ctx.fillText(data.notedBy || "Anthony Gerard Leuterio", 60, sigY + 40);
 
     ctx.fillStyle = "#64748B";
     ctx.font = "13px sans-serif";
-    const defaultNote = data.mode === "REPAYMENT_RECEIPT"
-      ? "Official receipt for cash advance repayment. Balance has been automatically updated."
-      : `Repayment starts on ${data.dueStartDate} and ends on ${data.dueEndDate}. Repayments are deducted via agent payouts or bank transfer.`;
+    ctx.fillText("Founder & CEO • Filipino Homes / FHI Global", 60, sigY + 62);
 
-    ctx.fillText(data.remarks || defaultNote, 60, notesY + 42);
+    // RIGHT: RECEIVED BY & SIGNATURE LINE (Spanning to right border 1140)
+    ctx.fillStyle = "#0F172A";
+    ctx.font = "900 15px sans-serif";
+    ctx.fillText("RECEIVED BY:", 620, sigY);
+
+    // Signature Underline
+    ctx.beginPath();
+    ctx.strokeStyle = "#0F172A";
+    ctx.lineWidth = 2.0;
+    ctx.moveTo(620, sigY + 52);
+    ctx.lineTo(rightEdge, sigY + 52);
+    ctx.stroke();
+
+    ctx.fillStyle = "#94A3B8";
+    ctx.font = "12px sans-serif";
+    ctx.fillText("Signature over Printed Name / Date", 620, sigY + 72);
+
+    // ==========================================================
+    // OFFICIAL NOTES & SECURITY NOTICE BOX (Fills Bondpaper)
+    // ==========================================================
+    const notesY = 1080;
+    const notesW = 1080;
+
+    ctx.fillStyle = "rgba(248, 250, 252, 0.9)";
+    ctx.beginPath();
+    ctx.roundRect(60, notesY, notesW, 140, [14]);
+    ctx.fill();
+    ctx.strokeStyle = "#E2E8F0";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    drawFAIcon(ctx, "\uf15c", 82, notesY + 30, 15, "#DC2626");
+    ctx.fillStyle = "#0F172A";
+    ctx.font = "bold 14px sans-serif";
+    ctx.fillText("CASH ADVANCE POLICY & REPAYMENT ACKNOWLEDGEMENT", 106, notesY + 30);
+
+    ctx.fillStyle = "#475569";
+    ctx.font = "13px sans-serif";
+    ctx.fillText("1. The recipient agent agrees that cash advances are subject to deductions from future commission releases until fully settled.", 82, notesY + 58);
+    ctx.fillText("2. All repayment transactions are acknowledged with an official receipt number issued by the finance and accounting department.", 82, notesY + 82);
+    ctx.fillText("3. For account balances or statement of account inquiries, contact finance@filipinohomes.com.", 82, notesY + 106);
 
     // FOOTER
     const footerY = height - 60;
-    ctx.fillStyle = "#0F172A";
-    ctx.fillRect(0, footerY, width, 60);
+    ctx.fillStyle = "#DC2626";
+    ctx.fillRect(0, footerY, width, 2);
 
-    drawFAIcon(ctx, "\uf132", 60, footerY + 35, 14, "#E11D2E");
+    ctx.fillStyle = "#0F172A";
+    ctx.fillRect(0, footerY + 2, width, 58);
+
+    drawFAIcon(ctx, "\uf132", 60, footerY + 35, 15, "#DC2626");
     ctx.fillStyle = "#FFFFFF";
     ctx.font = "bold 13px sans-serif";
     ctx.fillText("Official Computer Generated Cash Advance Voucher / Repayment Receipt", 84, footerY + 28);
@@ -592,7 +677,7 @@ export default function CashAdvanceCanvasPreview({
     ctx.font = "bold 12px sans-serif";
     ctx.fillText("Page 1 of 1", width - 60, footerY + 36);
     ctx.textAlign = "left";
-  }, [data, faLoaded, curr, loadedLogo]);
+  }, [data, faLoaded, curr, loadedLogo, loadedBg]);
 
   const handleDownloadPNG = () => {
     const canvas = canvasRef.current;
@@ -602,6 +687,50 @@ export default function CashAdvanceCanvasPreview({
     link.download = `${data.mode}_${data.cashAdvanceCode}.png`;
     link.href = imageURI;
     link.click();
+  };
+
+  const handlePrintCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL("image/png");
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      alert("Please allow popups to print invoices directly.");
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Print Voucher - ${data.cashAdvanceCode}</title>
+          <style>
+            @page {
+              size: portrait;
+              margin: 0;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              background-color: #ffffff;
+              display: flex;
+              justify-content: center;
+              align-items: flex-start;
+            }
+            img {
+              width: 100%;
+              max-width: 100vw;
+              height: auto;
+              display: block;
+            }
+          </style>
+        </head>
+        <body>
+          <img src="${dataUrl}" onload="window.print();window.close();" />
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   return (
@@ -614,13 +743,22 @@ export default function CashAdvanceCanvasPreview({
           </span>
         </div>
 
-        <button
-          onClick={handleDownloadPNG}
-          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
-        >
-          <Download className="w-4 h-4" />
-          Download Canvas Image (PNG)
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handlePrintCanvas}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <Printer className="w-4 h-4 text-red-400" />
+            Print Voucher
+          </button>
+          <button
+            onClick={handleDownloadPNG}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            Download PNG
+          </button>
+        </div>
       </div>
 
       <div className="flex justify-center overflow-x-auto bg-slate-200/60 p-4 lg:p-8 rounded-3xl border border-slate-300 shadow-inner">

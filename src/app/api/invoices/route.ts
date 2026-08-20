@@ -120,6 +120,7 @@ export async function GET(request: NextRequest) {
         COALESCE(SUM(commission_received), 0) as total_commission_received,
         COALESCE(SUM(net_amount), 0) as total_net,
         COALESCE(SUM(vat_amount), 0) as total_vat,
+        COALESCE(SUM(GREATEST(0, (net_amount + vat_amount) - gross_amount)), 0) as total_deductibles,
         COALESCE(SUM(gross_amount), 0) as total_gross
        FROM generated_invoices`
     );
@@ -128,6 +129,7 @@ export async function GET(request: NextRequest) {
       total_commission_received: 0,
       total_net: 0,
       total_vat: 0,
+      total_deductibles: 0,
       total_gross: 0,
     };
 
