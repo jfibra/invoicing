@@ -62,20 +62,38 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
       }
 
       setSigData(data.request);
-      if (data.request.agent_name && !signerName) {
-        setSignerName(data.request.agent_name);
-        setTypedSignature(data.request.agent_name);
+      if (data.request.agent_name) {
+        setSignerName((prev) => prev || data.request.agent_name);
+        setTypedSignature((prev) => prev || data.request.agent_name);
       }
     } catch (err: any) {
       setError(err.message || "Invalid or expired invoice signing link.");
     } finally {
       setLoading(false);
     }
-  }, [token, signerName]);
+  }, [token]);
 
   useEffect(() => {
     fetchInvoiceForSigning();
   }, [fetchInvoiceForSigning]);
+
+  // Scaled coordinates mapping screen pointer to canvas internal coordinates
+  const getCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+
+    const scaleX = canvas.width / (rect.width || 1);
+    const scaleY = canvas.height / (rect.height || 1);
+
+    const x = (clientX - rect.left) * scaleX;
+    const y = (clientY - rect.top) * scaleY;
+
+    return { x, y };
+  };
 
   // Setup Canvas Drawing Pad
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -84,12 +102,14 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    if ("touches" in e) {
+      e.stopPropagation();
+    }
+
     setIsDrawing(true);
     setHasDrawn(true);
 
-    const rect = canvas.getBoundingClientRect();
-    const x = "touches" in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
-    const y = "touches" in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+    const { x, y } = getCoordinates(e);
 
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -106,11 +126,12 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    if ("touches" in e) e.preventDefault();
+    if ("touches" in e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
-    const rect = canvas.getBoundingClientRect();
-    const x = "touches" in e ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
-    const y = "touches" in e ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+    const { x, y } = getCoordinates(e);
 
     ctx.lineTo(x, y);
     ctx.stroke();
