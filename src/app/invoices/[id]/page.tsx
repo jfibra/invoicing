@@ -949,3 +949,4 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
     </div>
   );
 }
+

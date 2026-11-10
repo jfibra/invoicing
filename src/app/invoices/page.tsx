@@ -1852,7 +1852,7 @@ function CommissionInvoicesContent() {
                       <th className="py-3 px-4 text-right">Deductibles</th>
                       <th className="py-3 px-4 text-right">Gross Total</th>
                       <th className="py-3 px-4 text-center">Lock Status</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
+                      <th className="py-3 px-4 text-right sticky right-0 bg-slate-50/95 backdrop-blur-xs z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)]">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs">
@@ -1894,9 +1894,21 @@ function CommissionInvoicesContent() {
                           <tr key={inv.id} className="hover:bg-slate-50/80 transition-colors">
                             <td className="py-4 px-4">
                               <div className="flex items-center gap-2">
-                                <span className="font-bold font-mono text-slate-900">
-                                  {inv.invoice_number}
-                                </span>
+                                <Link
+                                  href={`/invoices/${inv.id}`}
+                                  className="font-bold font-mono text-red-600 hover:text-red-700 hover:underline flex items-center gap-1.5 group"
+                                  title="Click to View Full Invoice & E-Sign"
+                                >
+                                  <FileText className="w-3.5 h-3.5 text-red-600 group-hover:scale-110 transition-transform" />
+                                  <span>{inv.invoice_number}</span>
+                                </Link>
+                                <Link
+                                  href={`/invoices/${inv.id}`}
+                                  className="px-2 py-0.5 rounded-md bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-[10px] font-black uppercase transition-colors"
+                                  title="View Invoice Detail"
+                                >
+                                  View →
+                                </Link>
                                 {Number(inv.attachment_count) > 0 && (
                                   <button
                                     type="button"
@@ -2014,25 +2026,35 @@ function CommissionInvoicesContent() {
                               )}
                             </td>
 
-                            <td className="py-4 px-4 text-right">
+                            <td className="py-4 px-4 text-right sticky right-0 bg-white group-hover:bg-slate-50 transition-colors z-10 shadow-[-6px_0_8px_-3px_rgba(0,0,0,0.06)]">
                               <div className="flex items-center justify-end gap-1.5">
-                                {/* VIEW ATTACHMENTS SHORTCUT BUTTON */}
+                                {/* 1. VIEW INVOICE (PRIMARY ACTION) */}
+                                <Link
+                                  href={`/invoices/${inv.id}`}
+                                  className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap"
+                                  title="View Professional Invoice, Print & E-Signature Audit"
+                                >
+                                  <FileText className="w-3.5 h-3.5" />
+                                  <span>View Invoice</span>
+                                </Link>
+
+                                {/* 2. SEND FOR E-SIGNATURE */}
                                 <button
                                   type="button"
-                                  onClick={() => handleOpenViewAttachmentsModal(inv)}
-                                  className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                                  title="View & Manage S3 Document Attachments"
+                                  onClick={() => setSignatureModalInv(inv)}
+                                  className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap"
+                                  title="Send for Agent Review & E-Signature"
                                 >
-                                  <Paperclip className="w-3.5 h-3.5 text-purple-600" />
-                                  <span>Files ({inv.attachment_count || 0})</span>
+                                  <Mail className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Send Sign</span>
                                 </button>
 
-                                {/* EDIT ACTION BUTTON */}
+                                {/* 3. EDIT ACTION BUTTON */}
                                 <button
                                   type="button"
                                   onClick={() => handleOpenEditModal(inv)}
                                   disabled={Boolean(inv.is_locked)}
-                                  className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5 shadow-2xs ${
+                                  className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5 shadow-2xs whitespace-nowrap ${
                                     inv.is_locked
                                       ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-50"
                                       : "bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 cursor-pointer"
@@ -2043,43 +2065,33 @@ function CommissionInvoicesContent() {
                                   <span>Edit</span>
                                 </button>
 
-                                {/* VIEW DEDICATED INVOICE BUTTON */}
-                                <Link
-                                  href={`/invoices/${inv.id}`}
-                                  className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                                  title="View Professional Invoice, Print & E-Signature Audit"
+                                {/* 4. VIEW ATTACHMENTS SHORTCUT BUTTON */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenViewAttachmentsModal(inv)}
+                                  className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap"
+                                  title="View & Manage S3 Document Attachments"
                                 >
-                                  <FileText className="w-3.5 h-3.5" />
-                                  <span>View Invoice</span>
-                                </Link>
+                                  <Paperclip className="w-3.5 h-3.5 text-purple-600" />
+                                  <span>Files ({inv.attachment_count || 0})</span>
+                                </button>
 
-                                {/* VIEW / REGENERATE CANVAS BUTTON */}
+                                {/* 5. VIEW / REGENERATE CANVAS BUTTON */}
                                 <button
                                   type="button"
                                   onClick={() => handleRegenerateFromHistory(inv)}
-                                  className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                                  className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer shadow-2xs whitespace-nowrap"
                                   title="Regenerate on Canvas"
                                 >
                                   <Eye className="w-3.5 h-3.5 text-slate-600" />
                                   <span>Canvas</span>
                                 </button>
 
-                                {/* SEND FOR E-SIGNATURE BUTTON */}
-                                <button
-                                  type="button"
-                                  onClick={() => setSignatureModalInv(inv)}
-                                  className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                                  title="Send for Agent Review & E-Signature"
-                                >
-                                  <Mail className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>Send Sign</span>
-                                </button>
-
-                                {/* DELETE BUTTON */}
+                                {/* 6. DELETE BUTTON */}
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteInvoice(inv.id, inv.invoice_number)}
-                                  className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                                  className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap"
                                   title="Delete Record"
                                 >
                                   <Trash2 className="w-3.5 h-3.5 text-rose-600" />
@@ -2317,7 +2329,7 @@ function CommissionInvoicesContent() {
         {/* Canvas Rendered Bondpaper Preview Card (If Generated or Loaded) */}
         {activeCanvasInvoice && (
           <div id="canvas-preview-section" className="bg-white border border-slate-200 rounded-3xl p-8 shadow-md space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
               <div>
                 <span className="px-3 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold uppercase tracking-wider">
                   Generated Bondpaper Canvas Invoice
@@ -2325,6 +2337,23 @@ function CommissionInvoicesContent() {
                 <h2 className="text-xl font-black text-slate-900 mt-1">
                   Invoice #{activeCanvasInvoice.invoiceNumber}
                 </h2>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/invoices/${activeCanvasInvoice.invoiceNumber}`}
+                  className="px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-xs transition-colors"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>View Statement &amp; E-Sign</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setActiveCanvasInvoice(null)}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs cursor-pointer"
+                >
+                  Close
+                </button>
               </div>
             </div>
 
