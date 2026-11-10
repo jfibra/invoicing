@@ -38,6 +38,7 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [consentGiven, setConsentGiven] = useState(false);
 
   // Decline Modal State
   const [declineOpen, setDeclineOpen] = useState(false);
@@ -146,6 +147,11 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
   const handleSign = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
+
+    if (!consentGiven) {
+      setSubmitError("Please confirm your agreement by checking the legal consent acknowledgment box.");
+      return;
+    }
 
     if (!signerName.trim()) {
       setSubmitError("Please enter your full legal name.");
@@ -655,13 +661,24 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
                 )}
               </div>
 
-              {/* Legal Consent Disclaimer */}
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-[11px] text-slate-600 space-y-1.5 leading-relaxed">
-                <p className="font-extrabold text-slate-800">Legal Consent &amp; Disclosure:</p>
-                <p>
-                  By clicking <strong>&ldquo;Sign &amp; Acknowledge Invoice&rdquo;</strong>, I confirm that I have reviewed the invoice details, calculation breakdown, and terms. I agree that my electronic signature constitutes my formal acknowledgment and confirmation under company agreement. Note: Jurisdiction-specific signature legalities may vary; consult legal counsel if statutory formalities apply.
-                </p>
-              </div>
+              {/* Legal Consent Disclaimer Checkbox */}
+              <label className="flex items-start gap-3 p-4 bg-slate-50 hover:bg-slate-100/70 rounded-2xl border border-slate-200 text-[11px] text-slate-700 leading-relaxed cursor-pointer transition-colors">
+                <input
+                  type="checkbox"
+                  required
+                  checked={consentGiven}
+                  onChange={(e) => setConsentGiven(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-red-600 rounded cursor-pointer flex-shrink-0"
+                />
+                <div className="space-y-1">
+                  <span className="font-extrabold text-slate-900 block">
+                    Legal Consent &amp; Disclosure Acknowledgment *
+                  </span>
+                  <p className="text-slate-600">
+                    I confirm that I have reviewed the invoice details, calculation breakdown, and terms. I agree that my electronic signature constitutes my formal acknowledgment and confirmation under company agreement. Note: Jurisdiction-specific signature legalities may vary; consult legal counsel if statutory formalities apply.
+                  </p>
+                </div>
+              </label>
 
               {/* Actions Row */}
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
