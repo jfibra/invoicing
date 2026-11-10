@@ -14,28 +14,36 @@ export interface ActivityLogInput {
   user_agent?: string | null;
 }
 
+let activityLogsTablePromise: Promise<void> | null = null;
+
 export async function ensureActivityLogsTable() {
-  await commissionsDb.query(`
-    CREATE TABLE IF NOT EXISTS site_activity_logs (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      user_id INT NULL,
-      member_id INT NULL,
-      user_name VARCHAR(255) NULL,
-      user_email VARCHAR(255) NULL,
-      role_name VARCHAR(100) NULL,
-      action_type VARCHAR(100) NOT NULL,
-      module_name VARCHAR(100) NOT NULL,
-      description TEXT NOT NULL,
-      metadata JSON NULL,
-      ip_address VARCHAR(100) NULL,
-      user_agent TEXT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      INDEX idx_action_type (action_type),
-      INDEX idx_module_name (module_name),
-      INDEX idx_user_email (user_email),
-      INDEX idx_created_at (created_at)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-  `);
+  if (!activityLogsTablePromise) {
+    activityLogsTablePromise = commissionsDb.query(`
+      CREATE TABLE IF NOT EXISTS site_activity_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NULL,
+        member_id INT NULL,
+        user_name VARCHAR(255) NULL,
+        user_email VARCHAR(255) NULL,
+        role_name VARCHAR(100) NULL,
+        action_type VARCHAR(100) NOT NULL,
+        module_name VARCHAR(100) NOT NULL,
+        description TEXT NOT NULL,
+        metadata JSON NULL,
+        ip_address VARCHAR(100) NULL,
+        user_agent TEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_action_type (action_type),
+        INDEX idx_module_name (module_name),
+        INDEX idx_user_email (user_email),
+        INDEX idx_created_at (created_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `).then(() => undefined).catch((err) => {
+      activityLogsTablePromise = null;
+      throw err;
+    });
+  }
+  return activityLogsTablePromise;
 }
 
 export async function logSiteActivity(input: ActivityLogInput) {

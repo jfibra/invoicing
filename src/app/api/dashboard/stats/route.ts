@@ -35,10 +35,6 @@ export async function GET(request: NextRequest) {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    try {
-      await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN template_style VARCHAR(50) DEFAULT 'modern_slate' AFTER invoice_type");
-    } catch (e) {}
-
     // 2. Fetch Invoice KPI Totals
     const [kpiRows] = await commissionsDb.query<RowDataPacket[]>(`
       SELECT 

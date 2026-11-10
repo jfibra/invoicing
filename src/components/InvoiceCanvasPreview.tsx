@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
-import { Download, Sparkles, Printer, Check, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { Download, Sparkles, Printer, Check, RefreshCw, Stamp } from "lucide-react";
 
 export type TemplateStyle = "modern_slate" | "executive_navy" | "crimson_gold" | "minimal_charcoal";
 
@@ -53,6 +54,8 @@ export interface InvoiceCanvasData {
   commissionStatus?: string;
   notedBy?: string;
   receivedBy?: string;
+  stampImageUrl?: string | null;
+  stampPosition?: "signature" | "watermark" | "top_right";
 }
 
 export default function InvoiceCanvasPreview({
@@ -66,7 +69,45 @@ export default function InvoiceCanvasPreview({
   const [faLoaded, setFaLoaded] = useState(false);
   const [loadedLogo, setLoadedLogo] = useState<HTMLImageElement | null>(null);
   const [loadedBg, setLoadedBg] = useState<HTMLImageElement | null>(null);
+  const [loadedStamp, setLoadedStamp] = useState<HTMLImageElement | null>(null);
   const [dbTypeConfig, setDbTypeConfig] = useState<{ code: string; label: string; invoice_title: string; description: string } | null>(null);
+  const [availableStamps, setAvailableStamps] = useState<any[]>([]);
+  const [selectedStampUrl, setSelectedStampUrl] = useState<string | null>(data.stampImageUrl || null);
+
+  // Fetch available stamps from DB
+  useEffect(() => {
+    async function fetchStamps() {
+      try {
+        const res = await fetch("/api/stamps?includeAll=true");
+        const resData = await res.json();
+        if (res.ok && Array.isArray(resData.stamps)) {
+          setAvailableStamps(resData.stamps);
+          if (!data.stampImageUrl && resData.stamps.length > 0) {
+            const defaultStamp = resData.stamps.find((s: any) => s.isDefault) || resData.stamps[0];
+            if (defaultStamp && defaultStamp.previewImageUrl) {
+              setSelectedStampUrl(defaultStamp.previewImageUrl);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch stamps in invoice preview:", e);
+      }
+    }
+    fetchStamps();
+  }, [data.stampImageUrl]);
+
+  // Preload Selected Stamp Image
+  useEffect(() => {
+    const stampSrc = selectedStampUrl || data.stampImageUrl;
+    if (!stampSrc) {
+      setLoadedStamp(null);
+      return;
+    }
+    const img = new Image();
+    img.src = stampSrc;
+    img.onload = () => setLoadedStamp(img);
+    img.onerror = () => setLoadedStamp(null);
+  }, [selectedStampUrl, data.stampImageUrl]);
 
   // Fetch dynamic invoice type settings from database if not explicitly provided in props
   useEffect(() => {
@@ -711,6 +752,22 @@ export default function InvoiceCanvasPreview({
     ctx.fillText("Signature over Printed Name / Date", 620, sigY + 72);
 
     // ==========================================================
+    // OFFICIAL STAMP / VIP SEAL BADGE RENDERING
+    // ==========================================================
+    if (loadedStamp) {
+      ctx.save();
+      const stampSize = 170;
+      const stampCenterX = 910;
+      const stampCenterY = sigY + 38;
+
+      ctx.translate(stampCenterX, stampCenterY);
+      ctx.rotate((-7 * Math.PI) / 180);
+      ctx.globalAlpha = 0.90;
+      ctx.drawImage(loadedStamp, -stampSize / 2, -stampSize / 2, stampSize, stampSize);
+      ctx.restore();
+    }
+
+    // ==========================================================
     // OFFICIAL NOTES & SECURITY VERIFICATION BOX (Fills Bondpaper)
     // ==========================================================
     const notesY = 1080;
@@ -764,7 +821,7 @@ export default function InvoiceCanvasPreview({
     ctx.font = "bold 12px sans-serif";
     ctx.fillText("Page 1 of 1", width - 60, footerY + 36);
     ctx.textAlign = "left";
-  }, [data, activeTemplate, faLoaded, curr, loadedLogo, loadedBg]);
+  }, [data, activeTemplate, faLoaded, curr, loadedLogo, loadedBg, loadedStamp]);
 
   // Export Canvas Image to Downloadable PNG
   const handleDownloadPNG = () => {
@@ -826,12 +883,39 @@ export default function InvoiceCanvasPreview({
     <div className="space-y-6">
       {/* Template Style Selector & Action Toolbar */}
       <div className="bg-slate-900 text-white p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-red-500" />
-          <span className="text-xs font-bold uppercase tracking-wider">High-Contrast Print Optimized Voucher</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-red-500" />
+            <span className="text-xs font-bold uppercase tracking-wider">Print Optimized Voucher</span>
+          </div>
+
+          {/* Stamp / Seal Selector Dropdown */}
+          <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-1">
+            <Stamp className="w-3.5 h-3.5 text-red-400" />
+            <select
+              value={selectedStampUrl || ""}
+              onChange={(e) => setSelectedStampUrl(e.target.value || null)}
+              className="bg-transparent text-xs font-bold text-slate-200 focus:outline-hidden cursor-pointer"
+            >
+              <option value="" className="bg-slate-900 text-slate-300">
+                No Stamp / Seal
+              </option>
+              {availableStamps.map((stamp) => (
+                <option key={stamp.id} value={stamp.previewImageUrl || ""} className="bg-slate-900 text-white">
+                  {stamp.stampName} {stamp.isDefault ? "★ (Default)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
+          <Link
+            href="/stamp-generator"
+            className="text-xs text-slate-400 hover:text-white transition font-medium hidden md:inline-flex items-center gap-1"
+          >
+            <span>Design Stamps</span>
+          </Link>
           <button
             onClick={handlePrintCanvas}
             className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"

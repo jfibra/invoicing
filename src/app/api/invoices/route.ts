@@ -4,64 +4,60 @@ import { logSiteActivity } from "@/lib/activityLogger";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 import { ensureInvoiceFilesTable } from "@/lib/invoiceAttachments";
 
-// Helper: Ensure generated_invoices table exists
-async function ensureInvoicesTable() {
-  await ensureInvoiceFilesTable();
-  await commissionsDb.query(`
-    CREATE TABLE IF NOT EXISTS generated_invoices (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      invoice_number VARCHAR(100) NOT NULL UNIQUE,
-      invoice_type VARCHAR(50) NOT NULL,
-      template_style VARCHAR(50) DEFAULT 'modern_slate',
-      particular_title VARCHAR(255) NULL,
-      commission_status VARCHAR(100) NULL,
-      member_id INT NULL,
-      agent_code VARCHAR(100),
-      agent_name VARCHAR(255) NOT NULL,
-      agent_email VARCHAR(255),
-      team_name VARCHAR(255),
-      subteam_name VARCHAR(255),
-      developer_name VARCHAR(255),
-      project_name VARCHAR(255),
-      project_location VARCHAR(255) NULL,
-      unit_number VARCHAR(100),
-      buyer_name VARCHAR(255) NULL,
-      project_value DECIMAL(15,2) NULL,
-      commission_received DECIMAL(15,2) NULL,
-      commission_rate DECIMAL(5,2) NULL,
-      net_amount DECIMAL(15,2) NOT NULL,
-      vat_rate DECIMAL(5,2) NOT NULL DEFAULT 5.00,
-      vat_amount DECIMAL(15,2) NOT NULL,
-      gross_amount DECIMAL(15,2) NOT NULL,
-      currency VARCHAR(10) DEFAULT 'AED',
-      status VARCHAR(50) DEFAULT 'ISSUED',
-      is_locked TINYINT(1) DEFAULT 0,
-      issued_date DATE NOT NULL,
-      remarks TEXT,
-      deductibles JSON NULL,
-      profile_snapshot JSON,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      INDEX idx_invoice_num (invoice_number),
-      INDEX idx_agent_code (agent_code),
-      INDEX idx_status (status),
-      INDEX idx_issued_date (issued_date)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-  `);
+// Helper: Ensure generated_invoices table exists (run once per process)
+let invoicesTableInitPromise: Promise<void> | null = null;
 
-  try {
-    await commissionsDb.query("ALTER TABLE generated_invoices DROP COLUMN spa_reference");
-  } catch (e) {}
-  try {
-    await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN particular_title VARCHAR(255) NULL AFTER template_style");
-    await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN commission_status VARCHAR(100) NULL AFTER particular_title");
-    await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN project_location VARCHAR(255) NULL AFTER project_name");
-    await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN buyer_name VARCHAR(255) NULL AFTER unit_number");
-    await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN project_value DECIMAL(15,2) NULL AFTER buyer_name");
-    await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN commission_received DECIMAL(15,2) NULL AFTER project_value");
-    await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN commission_rate DECIMAL(5,2) NULL AFTER commission_received");
-    await commissionsDb.query("ALTER TABLE generated_invoices ADD COLUMN deductibles JSON NULL AFTER remarks");
-  } catch (e) {}
+async function ensureInvoicesTable() {
+  if (!invoicesTableInitPromise) {
+    invoicesTableInitPromise = (async () => {
+      await ensureInvoiceFilesTable();
+      await commissionsDb.query(`
+        CREATE TABLE IF NOT EXISTS generated_invoices (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          invoice_number VARCHAR(100) NOT NULL UNIQUE,
+          invoice_type VARCHAR(50) NOT NULL,
+          template_style VARCHAR(50) DEFAULT 'modern_slate',
+          particular_title VARCHAR(255) NULL,
+          commission_status VARCHAR(100) NULL,
+          member_id INT NULL,
+          agent_code VARCHAR(100),
+          agent_name VARCHAR(255) NOT NULL,
+          agent_email VARCHAR(255),
+          team_name VARCHAR(255),
+          subteam_name VARCHAR(255),
+          developer_name VARCHAR(255),
+          project_name VARCHAR(255),
+          project_location VARCHAR(255) NULL,
+          unit_number VARCHAR(100),
+          buyer_name VARCHAR(255) NULL,
+          project_value DECIMAL(15,2) NULL,
+          commission_received DECIMAL(15,2) NULL,
+          commission_rate DECIMAL(5,2) NULL,
+          net_amount DECIMAL(15,2) NOT NULL,
+          vat_rate DECIMAL(5,2) NOT NULL DEFAULT 5.00,
+          vat_amount DECIMAL(15,2) NOT NULL,
+          gross_amount DECIMAL(15,2) NOT NULL,
+          currency VARCHAR(10) DEFAULT 'AED',
+          status VARCHAR(50) DEFAULT 'ISSUED',
+          is_locked TINYINT(1) DEFAULT 0,
+          issued_date DATE NOT NULL,
+          remarks TEXT,
+          deductibles JSON NULL,
+          profile_snapshot JSON,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_invoice_num (invoice_number),
+          INDEX idx_agent_code (agent_code),
+          INDEX idx_status (status),
+          INDEX idx_issued_date (issued_date)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `);
+    })().catch((err) => {
+      invoicesTableInitPromise = null;
+      throw err;
+    });
+  }
+  return invoicesTableInitPromise;
 }
 
 // GET: List/Filter invoice history

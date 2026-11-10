@@ -5,18 +5,24 @@ import { RowDataPacket } from "mysql2";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const search = searchParams.get("search") || "";
     const firstName = searchParams.get("firstName") || "";
     const lastName = searchParams.get("lastName") || "";
     const email = searchParams.get("email") || "";
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
-    const limit = [10, 25, 50].includes(parseInt(searchParams.get("limit") || "10", 10))
-      ? parseInt(searchParams.get("limit") || "10", 10)
-      : 10;
+    const rawLimit = parseInt(searchParams.get("limit") || "10", 10);
+    const limit = [10, 25, 50, 100].includes(rawLimit) ? rawLimit : 10;
     const offset = (page - 1) * limit;
 
-    // Separate Filter Conditions for First Name, Last Name, and Email
+    // Filter conditions for active and inactive members
     let memberWhere = "WHERE m.status IN ('active', 'inactive')";
     const params: (string | number)[] = [];
+
+    if (search.trim()) {
+      const term = `%${search.trim()}%`;
+      memberWhere += " AND (m.completename LIKE ? OR m.memberid LIKE ? OR m.fn LIKE ? OR m.ln LIKE ? OR m.email LIKE ? OR m.emailad LIKE ? OR m.mobile LIKE ? OR m.phone LIKE ?)";
+      params.push(term, term, term, term, term, term, term, term);
+    }
 
     if (firstName.trim()) {
       memberWhere += " AND (m.fn LIKE ? OR m.completename LIKE ?)";
@@ -80,6 +86,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     const total = countRows[0]?.total || 0;
+    const totalPages = Math.ceil(total / limit) || 1;
 
     const members = membersRows.map((m) => ({
       member_id: m.member_code || m.internal_id,
@@ -102,11 +109,14 @@ export async function GET(request: NextRequest) {
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit) || 1,
+        totalPages,
       },
     });
   } catch (error: any) {
-    console.error("API Invoicing Members Error:", error);
-    return NextResponse.json({ error: "Failed to fetch invoicing members", details: error.message }, { status: 500 });
+    console.error("GET Members Error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch invoicing member roster", details: error.message },
+      { status: 500 }
+    );
   }
 }

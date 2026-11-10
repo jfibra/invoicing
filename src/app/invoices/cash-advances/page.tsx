@@ -105,6 +105,7 @@ function CashAdvancesContent() {
   const [memberPage, setMemberPage] = useState(1);
   const [memberPagination, setMemberPagination] = useState({ total: 0, totalPages: 1 });
   const [membersLoading, setMembersLoading] = useState(false);
+  const [memberError, setMemberError] = useState<string | null>(null);
 
   // Cash Advance Ledger State
   const [advances, setAdvances] = useState<any[]>([]);
@@ -121,6 +122,7 @@ function CashAdvancesContent() {
   const [trackerPage, setTrackerPage] = useState(1);
   const [trackerPagination, setTrackerPagination] = useState({ total: 0, totalPages: 1 });
   const [trackerLoading, setTrackerLoading] = useState(false);
+  const [trackerError, setTrackerError] = useState<string | null>(null);
   const [expandedCaId, setExpandedCaId] = useState<number | null>(null);
 
   // Modal State: Create/Disburse Cash Advance
@@ -172,6 +174,7 @@ function CashAdvancesContent() {
   // Fetch Members
   const fetchMembers = useCallback(async () => {
     setMembersLoading(true);
+    setMemberError(null);
     try {
       const query = new URLSearchParams({
         page: String(memberPage),
@@ -182,20 +185,22 @@ function CashAdvancesContent() {
       if (memberEmail) query.set("email", memberEmail);
 
       const res = await fetch(`/api/users?${query.toString()}`);
-      const data = await res.json();
-      const list = data.users || data.members || [];
-      if (res.ok) {
-        setMembers(
-          list.map((u: any) => ({
-            ...u,
-            teamname: u.teamname || u.team || "No Team",
-            subteam_name: u.subteam_name || u.subteam || "No Subteam",
-          }))
-        );
-        setMemberPagination(data.pagination || { total: list.length, totalPages: 1 });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || data?.details || `HTTP error ${res.status}`);
       }
-    } catch (err) {
-      console.error(err);
+      const list = data?.users || data?.members || [];
+      setMembers(
+        list.map((u: any) => ({
+          ...u,
+          teamname: u.teamname || u.team || "No Team",
+          subteam_name: u.subteam_name || u.subteam || "No Subteam",
+        }))
+      );
+      setMemberPagination(data?.pagination || { total: list.length, totalPages: 1 });
+    } catch (err: any) {
+      console.error("Failed to load members:", err);
+      setMemberError(err.message || "Failed to load members.");
     } finally {
       setMembersLoading(false);
     }
@@ -208,6 +213,7 @@ function CashAdvancesContent() {
   // Fetch Cash Advances Ledger
   const fetchCashAdvances = useCallback(async () => {
     setTrackerLoading(true);
+    setTrackerError(null);
     try {
       const query = new URLSearchParams({
         page: String(trackerPage),
@@ -219,14 +225,20 @@ function CashAdvancesContent() {
       if (trackerStatus) query.set("status", trackerStatus);
 
       const res = await fetch(`/api/cash-advances?${query.toString()}`);
-      const data = await res.json();
-      if (res.ok && data.advances) {
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || data?.details || `HTTP error ${res.status}`);
+      }
+      if (data && data.advances) {
         setAdvances(data.advances);
         setKpis(data.kpis || { total_count: 0, total_disbursed: 0, total_repaid: 0, total_outstanding: 0 });
         setTrackerPagination(data.pagination || { total: data.advances.length, totalPages: 1 });
+      } else {
+        setAdvances([]);
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Failed to fetch cash advances:", err);
+      setTrackerError(err.message || "Failed to load cash advances.");
     } finally {
       setTrackerLoading(false);
     }
@@ -705,7 +717,24 @@ function CashAdvancesContent() {
             </form>
 
             {membersLoading ? (
-              <div className="py-12 text-center text-slate-400">Loading roster members...</div>
+              <div className="py-12 text-center text-slate-400">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto text-emerald-600 mb-2" />
+                <span>Loading roster members...</span>
+              </div>
+            ) : memberError ? (
+              <div className="py-12 text-center text-rose-600 bg-rose-50/50 rounded-2xl border border-rose-200">
+                <AlertCircle className="w-6 h-6 mx-auto mb-2 text-rose-500" />
+                <p className="font-semibold">{memberError}</p>
+                <button
+                  type="button"
+                  onClick={() => fetchMembers()}
+                  className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white font-medium text-xs hover:bg-rose-700 transition cursor-pointer"
+                >
+                  <span>Retry Query</span>
+                </button>
+              </div>
+            ) : members.length === 0 ? (
+              <div className="py-12 text-center text-slate-400">No roster members found.</div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {members.map((m) => (
@@ -871,7 +900,24 @@ function CashAdvancesContent() {
                   <tbody className="divide-y divide-slate-100 text-xs font-medium">
                     {trackerLoading ? (
                       <tr>
-                        <td colSpan={6} className="py-12 text-center text-slate-400">Loading ledger records...</td>
+                        <td colSpan={6} className="py-12 text-center text-slate-400">
+                          <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600 mb-2" />
+                          <span>Loading ledger records...</span>
+                        </td>
+                      </tr>
+                    ) : trackerError ? (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-rose-600 bg-rose-50/50">
+                          <AlertCircle className="w-6 h-6 mx-auto mb-2 text-rose-500" />
+                          <p className="font-semibold">{trackerError}</p>
+                          <button
+                            type="button"
+                            onClick={() => fetchCashAdvances()}
+                            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white font-medium text-xs hover:bg-rose-700 transition cursor-pointer"
+                          >
+                            <span>Retry Query</span>
+                          </button>
+                        </td>
                       </tr>
                     ) : advances.length === 0 ? (
                       <tr>

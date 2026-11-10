@@ -51,45 +51,48 @@ export const INITIAL_DUBAI_DEVELOPERS = [
   { name: "Tiger Properties", code: "DEV-TIGER" },
 ];
 
+let developersTableInitPromise: Promise<void> | null = null;
+
 export async function ensureDevelopersTable() {
-  await commissionsDb.query(`
-    CREATE TABLE IF NOT EXISTS developers (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      name VARCHAR(255) NOT NULL UNIQUE,
-      code VARCHAR(50) NULL,
-      tin_number VARCHAR(100) NULL,
-      address TEXT NULL,
-      city VARCHAR(100) DEFAULT 'Dubai',
-      country VARCHAR(100) DEFAULT 'United Arab Emirates',
-      contact_person VARCHAR(150) NULL,
-      contact_email VARCHAR(150) NULL,
-      contact_phone VARCHAR(50) NULL,
-      status VARCHAR(50) DEFAULT 'active',
-      deleted_at TIMESTAMP NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      INDEX idx_name (name),
-      INDEX idx_code (code),
-      INDEX idx_status (status)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-  `);
+  if (!developersTableInitPromise) {
+    developersTableInitPromise = (async () => {
+      await commissionsDb.query(`
+        CREATE TABLE IF NOT EXISTS developers (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(255) NOT NULL UNIQUE,
+          code VARCHAR(50) NULL,
+          tin_number VARCHAR(100) NULL,
+          address TEXT NULL,
+          city VARCHAR(100) DEFAULT 'Dubai',
+          country VARCHAR(100) DEFAULT 'United Arab Emirates',
+          contact_person VARCHAR(150) NULL,
+          contact_email VARCHAR(150) NULL,
+          contact_phone VARCHAR(50) NULL,
+          status VARCHAR(50) DEFAULT 'active',
+          deleted_at TIMESTAMP NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_name (name),
+          INDEX idx_code (code),
+          INDEX idx_status (status)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+      `);
 
-  try {
-    await commissionsDb.query("ALTER TABLE developers DROP COLUMN rating");
-  } catch (e) {}
-  try {
-    await commissionsDb.query("ALTER TABLE developers DROP COLUMN description");
-  } catch (e) {}
-
-  // Seed default developers if table is empty
-  const [rows] = await commissionsDb.query<RowDataPacket[]>("SELECT COUNT(*) as count FROM developers");
-  if (rows[0]?.count === 0) {
-    for (const dev of INITIAL_DUBAI_DEVELOPERS) {
-      await commissionsDb.query(
-        `INSERT INTO developers (name, code, tin_number, address, city, country, status) 
-         VALUES (?, ?, '100392817400003', 'Business Bay, Downtown', 'Dubai', 'United Arab Emirates', 'active')`,
-        [dev.name, dev.code]
-      );
-    }
+      // Seed default developers if table is empty
+      const [rows] = await commissionsDb.query<RowDataPacket[]>("SELECT COUNT(*) as count FROM developers");
+      if (rows[0]?.count === 0) {
+        for (const dev of INITIAL_DUBAI_DEVELOPERS) {
+          await commissionsDb.query(
+            `INSERT INTO developers (name, code, tin_number, address, city, country, status) 
+             VALUES (?, ?, '100392817400003', 'Business Bay, Downtown', 'Dubai', 'United Arab Emirates', 'active')`,
+            [dev.name, dev.code]
+          );
+        }
+      }
+    })().catch((err) => {
+      developersTableInitPromise = null;
+      throw err;
+    });
   }
+  return developersTableInitPromise;
 }

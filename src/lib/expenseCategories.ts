@@ -1,7 +1,11 @@
 import { commissionsDb } from "@/lib/db";
 import seedData from "./vat_expense_seed.json";
 
+let expenseCategoriesInitPromise: Promise<void> | null = null;
+
 export async function ensureExpenseCategoriesTables() {
+  if (expenseCategoriesInitPromise) return expenseCategoriesInitPromise;
+  expenseCategoriesInitPromise = (async () => {
   await commissionsDb.query(`
     CREATE TABLE IF NOT EXISTS expense_categories (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -32,4 +36,9 @@ export async function ensureExpenseCategoriesTables() {
     }
     console.log("Seeded", seedData.length, "expense categories.");
   }
+  })().catch((err) => {
+    expenseCategoriesInitPromise = null;
+    throw err;
+  });
+  return expenseCategoriesInitPromise;
 }

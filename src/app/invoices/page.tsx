@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import HeaderNav from "@/components/HeaderNav";
 import InvoiceCanvasPreview, { InvoiceCanvasData, TemplateStyle, DeductibleItem } from "@/components/InvoiceCanvasPreview";
+import SendSignatureModal from "@/components/SendSignatureModal";
 import {
   FileText,
   Search,
@@ -244,6 +245,7 @@ function CommissionInvoicesContent() {
   const [members, setMembers] = useState<InvoicingMember[]>([]);
 
   // Search Filters for Agent List
+  const [agentSearch, setAgentSearch] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -255,6 +257,10 @@ function CommissionInvoicesContent() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // E-Signature modal state for History table
+  const [signatureModalInv, setSignatureModalInv] = useState<any | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   // Kiosk Invoice Issuance Modal State
   const [selectedMemberForInvoice, setSelectedMemberForInvoice] = useState<InvoicingMember | null>(null);
@@ -537,6 +543,7 @@ function CommissionInvoicesContent() {
     setError(null);
     try {
       const query = new URLSearchParams({
+        search: agentSearch,
         firstName,
         lastName,
         email,
@@ -557,7 +564,7 @@ function CommissionInvoicesContent() {
     } finally {
       setLoading(false);
     }
-  }, [firstName, lastName, email, page, limit]);
+  }, [agentSearch, firstName, lastName, email, page, limit]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -569,6 +576,7 @@ function CommissionInvoicesContent() {
   // Fetch Saved Invoices History & Tracker Data
   const fetchInvoiceHistory = useCallback(async () => {
     setHistoryLoading(true);
+    setHistoryError(null);
     try {
       const query = new URLSearchParams({
         search: historySearch,
@@ -581,13 +589,15 @@ function CommissionInvoicesContent() {
       });
       const res = await fetch(`/api/invoices?${query.toString()}`);
       const data = await res.json();
-      if (res.ok) {
-        setHistoryInvoices(data.invoices || []);
-        setHistoryKpis(data.kpis || { total_count: 0, total_net: 0, total_vat: 0, total_gross: 0 });
-        setHistoryPagination(data.pagination || { total: 0, totalPages: 1 });
+      if (!res.ok) {
+        throw new Error(data.error || data.details || "Failed to load invoices from database.");
       }
-    } catch (err) {
+      setHistoryInvoices(data.invoices || []);
+      setHistoryKpis(data.kpis || { total_count: 0, total_commission_received: 0, total_net: 0, total_vat: 0, total_deductibles: 0, total_gross: 0 });
+      setHistoryPagination(data.pagination || { total: 0, totalPages: 1 });
+    } catch (err: any) {
       console.error("Failed to fetch invoice history:", err);
+      setHistoryError(err.message || "Failed to load invoice history.");
     } finally {
       setHistoryLoading(false);
     }
@@ -712,6 +722,7 @@ function CommissionInvoicesContent() {
   };
 
   const handleResetFilters = () => {
+    setAgentSearch("");
     setFirstName("");
     setLastName("");
     setEmail("");
@@ -1346,6 +1357,20 @@ function CommissionInvoicesContent() {
                 </button>
               </div>
 
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Unified search by Agent Name, Member Code, Email, or Team..."
+                  value={agentSearch}
+                  onChange={(e) => {
+                    setAgentSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-red-600 focus:bg-white transition-all placeholder:text-slate-400"
+                />
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="relative">
                   <User className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
@@ -1479,21 +1504,40 @@ function CommissionInvoicesContent() {
                   <span className="font-semibold text-slate-800">{pagination.totalPages || 1}</span> pages ({pagination.total} agents found)
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page <= 1 || loading}
-                    className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
-                    disabled={page >= pagination.totalPages || loading}
-                    className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                    <span>Rows:</span>
+                    <select
+                      value={limit}
+                      onChange={(e) => {
+                        setLimit(Number(e.target.value));
+                        setPage(1);
+                      }}
+                      className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none cursor-pointer"
+                    >
+                      <option value={10}>10 per page</option>
+                      <option value={25}>25 per page</option>
+                      <option value={50}>50 per page</option>
+                      <option value={100}>100 per page</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page <= 1 || loading}
+                      className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                      disabled={page >= pagination.totalPages || loading}
+                      className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 cursor-pointer"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1819,6 +1863,21 @@ function CommissionInvoicesContent() {
                           <span>Loading invoice history...</span>
                         </td>
                       </tr>
+                    ) : historyError ? (
+                      <tr>
+                        <td colSpan={10} className="py-12 text-center text-rose-600 bg-rose-50/50">
+                          <AlertTriangle className="w-6 h-6 mx-auto mb-2 text-rose-500" />
+                          <p className="font-semibold">{historyError}</p>
+                          <button
+                            type="button"
+                            onClick={() => fetchInvoiceHistory()}
+                            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white font-medium text-xs hover:bg-rose-700 transition cursor-pointer"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            <span>Retry Query</span>
+                          </button>
+                        </td>
+                      </tr>
                     ) : historyInvoices.length === 0 ? (
                       <tr>
                         <td colSpan={10} className="py-12 text-center text-slate-400">
@@ -1992,7 +2051,18 @@ function CommissionInvoicesContent() {
                                   title="View & Regenerate on Canvas"
                                 >
                                   <Eye className="w-3.5 h-3.5 text-red-500" />
-                                  <span>View / Regenerate</span>
+                                  <span>View</span>
+                                </button>
+
+                                {/* SEND FOR E-SIGNATURE BUTTON */}
+                                <button
+                                  type="button"
+                                  onClick={() => setSignatureModalInv(inv)}
+                                  className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                                  title="Send for Agent Review & E-Signature"
+                                >
+                                  <Mail className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Send Sign</span>
                                 </button>
 
                                 {/* DELETE BUTTON */}
@@ -3775,6 +3845,27 @@ function CommissionInvoicesContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Admin Send E-Signature Modal */}
+      {signatureModalInv && (
+        <SendSignatureModal
+          isOpen={true}
+          onClose={() => setSignatureModalInv(null)}
+          onSuccess={() => {
+            setSignatureModalInv(null);
+            fetchInvoiceHistory();
+          }}
+          recordType="COMMISSION_INVOICE"
+          recordId={signatureModalInv.id}
+          invoiceNumber={signatureModalInv.invoice_number}
+          defaultEmail={signatureModalInv.agent_email || signatureModalInv.email || ""}
+          agentName={signatureModalInv.agent_name || signatureModalInv.member_name || "Agent"}
+          agentCode={signatureModalInv.agent_code || signatureModalInv.member_code || ""}
+          currency={signatureModalInv.currency || "AED"}
+          amountFormatted={Number(signatureModalInv.net_amount || signatureModalInv.total_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+          snapshotData={signatureModalInv}
+        />
       )}
     </div>
   );

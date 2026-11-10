@@ -140,7 +140,21 @@ export default function TeamsManagementPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {teams.length === 0 && !loading ? (
+                {error ? (
+                  <tr>
+                    <td colSpan={7} className="py-12 text-center text-rose-600 bg-rose-50/50">
+                      <p className="font-semibold">{error}</p>
+                      <button
+                        type="button"
+                        onClick={() => fetchTeams()}
+                        className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white font-medium text-xs hover:bg-rose-700 transition cursor-pointer"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Retry Query</span>
+                      </button>
+                    </td>
+                  </tr>
+                ) : teams.length === 0 && !loading ? (
                   <tr>
                     <td colSpan={7} className="py-12 text-center text-slate-400">
                       No sales teams found matching your search query.

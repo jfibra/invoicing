@@ -14,7 +14,11 @@ export interface InvoiceFileCategoryRecord {
   updated_at?: string;
 }
 
+let invoiceFileCategoriesInitPromise: Promise<void> | null = null;
+
 export async function ensureInvoiceFileCategoriesTable() {
+  if (invoiceFileCategoriesInitPromise) return invoiceFileCategoriesInitPromise;
+  invoiceFileCategoriesInitPromise = (async () => {
   await commissionsDb.query(`
     CREATE TABLE IF NOT EXISTS invoice_file_categories (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -131,6 +135,11 @@ export async function ensureInvoiceFileCategoriesTable() {
       );
     }
   }
+  })().catch((err) => {
+    invoiceFileCategoriesInitPromise = null;
+    throw err;
+  });
+  return invoiceFileCategoriesInitPromise;
 }
 
 export async function getInvoiceFileCategories(

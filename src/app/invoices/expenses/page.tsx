@@ -115,6 +115,7 @@ function ExpensesPortalContent() {
   const [teamFilter, setTeamFilter] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [expandedExpenseId, setExpandedExpenseId] = useState<number | null>(null);
 
   // Single Add Expense Form State
@@ -276,6 +277,7 @@ function ExpensesPortalContent() {
   // Fetch Expense Directory Records
   const fetchExpenses = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const query = new URLSearchParams({
         page: String(page),
@@ -287,16 +289,19 @@ function ExpensesPortalContent() {
       if (teamFilter) query.set("team", teamFilter);
 
       const res = await fetch(`/api/expenses?${query.toString()}`);
-      const contentType = res.headers.get("content-type");
-      if (res.ok && contentType && contentType.includes("application/json")) {
-        const data = await res.json();
-        if (data.expenses) {
-          setExpenses(data.expenses);
-          setKpis(data.kpis || { total_count: 0, total_net: 0, total_vat: 0, total_gross_taxable: 0, total_actual: 0 });
-        }
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || data?.details || `HTTP error ${res.status}`);
       }
-    } catch (err) {
+      if (data && data.expenses) {
+        setExpenses(data.expenses);
+        setKpis(data.kpis || { total_count: 0, total_net: 0, total_vat: 0, total_gross_taxable: 0, total_actual: 0 });
+      } else {
+        setExpenses([]);
+      }
+    } catch (err: any) {
       console.error("Failed to fetch expenses:", err);
+      setError(err.message || "Failed to load expenses.");
     } finally {
       setLoading(false);
     }
@@ -1240,7 +1245,24 @@ function ExpensesPortalContent() {
                   <tbody className="divide-y divide-slate-100 text-xs font-medium">
                     {loading ? (
                       <tr>
-                        <td colSpan={10} className="py-12 text-center text-slate-400">Loading expense records...</td>
+                        <td colSpan={10} className="py-12 text-center text-slate-400">
+                          <Loader2 className="w-6 h-6 animate-spin mx-auto text-red-600 mb-2" />
+                          <span>Loading expense records...</span>
+                        </td>
+                      </tr>
+                    ) : error ? (
+                      <tr>
+                        <td colSpan={10} className="py-12 text-center text-rose-600 bg-rose-50/50">
+                          <AlertCircle className="w-6 h-6 mx-auto mb-2 text-rose-500" />
+                          <p className="font-semibold">{error}</p>
+                          <button
+                            type="button"
+                            onClick={() => fetchExpenses()}
+                            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white font-medium text-xs hover:bg-rose-700 transition cursor-pointer"
+                          >
+                            <span>Retry Query</span>
+                          </button>
+                        </td>
                       </tr>
                     ) : expenses.length === 0 ? (
                       <tr>

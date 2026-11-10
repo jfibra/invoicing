@@ -32,6 +32,7 @@ function ProjectsContent() {
   const [projects, setProjects] = useState<any[]>([]);
   const [developers, setDevelopers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [devFilter, setDevFilter] = useState("");
 
@@ -54,8 +55,8 @@ function ProjectsContent() {
     async function loadDevs() {
       try {
         const res = await fetch("/api/developers");
-        const data = await res.json();
-        if (res.ok && data.developers) {
+        const data = await res.json().catch(() => null);
+        if (res.ok && data?.developers) {
           setDevelopers(data.developers);
         }
       } catch (e) {
@@ -67,17 +68,20 @@ function ProjectsContent() {
 
   const fetchProjects = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const query = new URLSearchParams({ search });
       if (devFilter) query.set("developer_id", devFilter);
 
       const res = await fetch(`/api/projects?${query.toString()}`);
-      const data = await res.json();
-      if (res.ok && data.projects) {
-        setProjects(data.projects);
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || data?.details || `HTTP error ${res.status}`);
       }
+      setProjects(data?.projects || []);
     } catch (err: any) {
-      console.error(err);
+      console.error("Failed to load projects:", err);
+      setError(err.message || "Failed to load projects");
     } finally {
       setLoading(false);
     }
@@ -386,7 +390,29 @@ function ProjectsContent() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs font-medium">
-                {projects.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center text-slate-400">
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-600 animate-ping" />
+                        <span>Loading projects...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center text-rose-600 bg-rose-50/50">
+                      <p className="font-semibold">{error}</p>
+                      <button
+                        type="button"
+                        onClick={() => fetchProjects()}
+                        className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 text-white font-medium text-xs hover:bg-rose-700 transition cursor-pointer"
+                      >
+                        <span>Retry Query</span>
+                      </button>
+                    </td>
+                  </tr>
+                ) : projects.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-12 text-center text-slate-400">
                       No projects found.

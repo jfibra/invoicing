@@ -16,26 +16,34 @@ export interface InvoiceFileRecord {
   uploaded_at?: string;
 }
 
+let invoiceFilesTablePromise: Promise<void> | null = null;
+
 export async function ensureInvoiceFilesTable() {
-  await commissionsDb.query(`
-    CREATE TABLE IF NOT EXISTS generated_invoice_files (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      invoice_id INT NOT NULL,
-      invoice_number VARCHAR(100) NOT NULL,
-      category_id INT NULL,
-      category_code VARCHAR(50) NULL,
-      category_name VARCHAR(150) NOT NULL,
-      file_name VARCHAR(255) NOT NULL,
-      s3_key VARCHAR(500) NOT NULL,
-      s3_url VARCHAR(500) NOT NULL,
-      file_size INT NULL,
-      mime_type VARCHAR(100) NULL,
-      uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      INDEX idx_invoice_id (invoice_id),
-      INDEX idx_invoice_number (invoice_number),
-      INDEX idx_category_id (category_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-  `);
+  if (!invoiceFilesTablePromise) {
+    invoiceFilesTablePromise = commissionsDb.query(`
+      CREATE TABLE IF NOT EXISTS generated_invoice_files (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        invoice_id INT NOT NULL,
+        invoice_number VARCHAR(100) NOT NULL,
+        category_id INT NULL,
+        category_code VARCHAR(50) NULL,
+        category_name VARCHAR(150) NOT NULL,
+        file_name VARCHAR(255) NOT NULL,
+        s3_key VARCHAR(500) NOT NULL,
+        s3_url VARCHAR(500) NOT NULL,
+        file_size INT NULL,
+        mime_type VARCHAR(100) NULL,
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_invoice_id (invoice_id),
+        INDEX idx_invoice_number (invoice_number),
+        INDEX idx_category_id (category_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `).then(() => undefined).catch((err) => {
+      invoiceFilesTablePromise = null;
+      throw err;
+    });
+  }
+  return invoiceFilesTablePromise;
 }
 
 export async function getInvoiceAttachments(invoiceId: number): Promise<InvoiceFileRecord[]> {
