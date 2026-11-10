@@ -102,17 +102,17 @@ export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
 
   // LIVE SMTP TRANSPORT (Only invoked when LIVE_EMAIL_SENDING === "true")
   try {
-    const host = process.env.MAIL_HOST;
-    const port = Number(process.env.MAIL_PORT || 465);
-    const user = process.env.MAIL_USERNAME;
-    const pass = process.env.MAIL_PASSWORD;
-    const from = process.env.MAIL_FROM || user || "no-reply@filipinohomes.com";
-    const fromName = (process.env.MAIL_FROM_NAME || "Filipino Homes").replace(/"/g, "");
+    const host = process.env.MAIL_HOST || process.env.SMTP_HOST;
+    const port = Number(process.env.MAIL_PORT || process.env.SMTP_PORT || 465);
+    const user = process.env.MAIL_USERNAME || process.env.SMTP_USER;
+    const pass = process.env.MAIL_PASSWORD || process.env.SMTP_PASS;
+    const from = process.env.MAIL_FROM || process.env.SMTP_FROM_EMAIL || user || "no-reply@filipinohomes.com";
+    const fromName = (process.env.MAIL_FROM_NAME || process.env.SMTP_FROM_NAME || "Filipino Homes").replace(/"/g, "");
 
     if (!host || !user || !pass) {
       return {
         success: false,
-        error: "SMTP configuration is incomplete. Please check MAIL_HOST, MAIL_USERNAME, and MAIL_PASSWORD.",
+        error: "SMTP configuration is incomplete. Please check MAIL_HOST / SMTP_HOST, MAIL_USERNAME / SMTP_USER, and MAIL_PASSWORD / SMTP_PASS.",
       };
     }
 
