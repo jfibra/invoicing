@@ -2043,15 +2043,25 @@ function CommissionInvoicesContent() {
                                   <span>Edit</span>
                                 </button>
 
+                                {/* VIEW DEDICATED INVOICE BUTTON */}
+                                <Link
+                                  href={`/invoices/${inv.id}`}
+                                  className="px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                                  title="View Professional Invoice, Print & E-Signature Audit"
+                                >
+                                  <FileText className="w-3.5 h-3.5" />
+                                  <span>View Invoice</span>
+                                </Link>
+
                                 {/* VIEW / REGENERATE CANVAS BUTTON */}
                                 <button
                                   type="button"
                                   onClick={() => handleRegenerateFromHistory(inv)}
-                                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white border border-slate-900 font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                                  title="View & Regenerate on Canvas"
+                                  className="px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                                  title="Regenerate on Canvas"
                                 >
-                                  <Eye className="w-3.5 h-3.5 text-red-500" />
-                                  <span>View</span>
+                                  <Eye className="w-3.5 h-3.5 text-slate-600" />
+                                  <span>Canvas</span>
                                 </button>
 
                                 {/* SEND FOR E-SIGNATURE BUTTON */}
