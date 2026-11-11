@@ -68,4 +68,34 @@ html.dark ::-webkit-scrollbar-thumb { background: #334155; }
     margin: 0 !important;
     padding: 0 !important;
   }
+
+  html:has(.invoice-print-page),
+  body:has(.invoice-print-page) {
+    height: 99.2vh !important;
+    max-height: 99.2vh !important;
+    overflow: hidden !important;
+  }
+
+  .invoice-print-page {
+    zoom: var(--print-zoom, 1) !important;
+    min-height: calc(99.2vh / var(--print-zoom, 1)) !important;
+    height: calc(99.2vh / var(--print-zoom, 1)) !important;
+    max-height: calc(99.2vh / var(--print-zoom, 1)) !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .invoice-print-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
 }

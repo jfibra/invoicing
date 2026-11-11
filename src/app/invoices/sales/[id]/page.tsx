@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, use } from "react";
+import React, { useState, useEffect, useCallback, useRef, use } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSinglePagePrint } from "@/lib/useSinglePagePrint";
 import {
   FileText,
   Printer,
@@ -58,6 +59,8 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  useSinglePagePrint(sheetRef);
 
   const fetchSaleInvoice = useCallback(async () => {
     setLoading(true);
@@ -505,9 +508,12 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
         {/* ========================================================================= */}
         {/* INVOICE CANVAS / PRINT SHEET (Pixel-Perfect Matching Company Identity) */}
         {/* ========================================================================= */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-md overflow-hidden print:rounded-none print:border-none print:shadow-none print:p-0 print:w-full print:max-w-none print:box-border print:min-h-[99vh] print:flex print:flex-col">
+        <div
+          ref={sheetRef}
+          className="invoice-print-page bg-white rounded-3xl border border-slate-200 shadow-md overflow-hidden print:rounded-none print:border-none print:shadow-none print:p-0 print:w-full print:max-w-none print:box-border"
+        >
           {/* Header Banner (#001f3f Navy for high-contrast white logo) */}
-          <div className="bg-[#001f3f] text-white border-b-4 border-red-600 p-6 sm:px-10 sm:py-7 print:px-10 print:py-5 flex flex-col sm:flex-row print:flex-row items-start justify-between gap-6 print:gap-4">
+          <div className="bg-[#001f3f] text-white border-b-4 border-red-600 p-6 sm:px-10 sm:py-7 print:px-9 print:py-4 flex flex-col sm:flex-row print:flex-row items-start justify-between gap-6 print:gap-4">
             <div className="space-y-2.5">
               <div className="flex items-center gap-3">
                 <Image
@@ -572,7 +578,7 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
           </div>
 
           {/* Body Content */}
-          <div className="p-6 sm:px-10 sm:py-8 print:px-10 print:py-7 print:flex-1 print:flex print:flex-col print:justify-between space-y-8 print:space-y-5">
+          <div className="invoice-print-body p-6 sm:px-10 sm:py-8 print:px-9 print:py-3.5 space-y-8 print:space-y-2.5">
 
           {/* Party Details Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6 print:gap-4 bg-slate-50/60 p-6 print:p-3.5 rounded-2xl border border-slate-100 text-xs">
@@ -788,7 +794,7 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
           </div>
 
           {/* Navy Branded Footer (#001f3f) */}
-          <div className="bg-[#001f3f] text-white border-t-4 border-red-600 px-6 py-4 sm:px-10 print:px-10 print:py-3.5 flex flex-col sm:flex-row print:flex-row items-center justify-between gap-2 text-[11px] mt-auto print:shrink-0 print:break-inside-avoid">
+          <div className="bg-[#001f3f] text-white border-t-4 border-red-600 px-6 py-4 sm:px-10 print:px-9 print:py-2.5 flex flex-col sm:flex-row print:flex-row items-center justify-between gap-2 text-[11px] mt-auto print:shrink-0 print:break-inside-avoid">
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-red-500 flex-shrink-0" />
               <span className="font-bold">Official Tax Invoice &bull; Sales Record</span>

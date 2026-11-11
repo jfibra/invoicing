@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import { normalizeInvoiceSnapshot } from "@/lib/snapshotNormalize";
+import { useSinglePagePrint } from "@/lib/useSinglePagePrint";
 
 interface SignPageProps {
   params: Promise<{ token: string }>;
@@ -48,6 +49,8 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
 
   // Canvas Drawing Pad State
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+  useSinglePagePrint(sheetRef);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
 
@@ -481,9 +484,12 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
         )}
 
         {/* Invoice Statement Card */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:rounded-none print:border-none print:shadow-none print:p-0 print:w-full print:max-w-none print:box-border print:min-h-[99vh] print:flex print:flex-col">
+        <div
+          ref={sheetRef}
+          className="invoice-print-page bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:rounded-none print:border-none print:shadow-none print:p-0 print:w-full print:max-w-none print:box-border"
+        >
           {/* Header Banner (#001f3f Navy for high-contrast white logo) */}
-          <div className="bg-[#001f3f] text-white border-b-4 border-red-600 p-6 sm:px-10 sm:py-6 print:px-10 print:py-5 flex flex-col sm:flex-row print:flex-row items-start justify-between gap-4">
+          <div className="bg-[#001f3f] text-white border-b-4 border-red-600 p-6 sm:px-10 sm:py-6 print:px-9 print:py-4 flex flex-col sm:flex-row print:flex-row items-start justify-between gap-4">
             <div className="space-y-2">
               <Image
                 src="/fhi.png"
@@ -519,7 +525,7 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
           </div>
 
           {/* Body Content */}
-          <div className="p-5 sm:p-8 print:px-10 print:py-7 print:flex-1 print:flex print:flex-col print:justify-between space-y-6 print:space-y-5">
+          <div className="invoice-print-body p-5 sm:p-8 print:px-9 print:py-4 space-y-6 print:space-y-3">
 
           {/* Parties */}
           <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-4 bg-slate-50 p-4 print:p-3.5 rounded-2xl text-xs">
@@ -632,7 +638,7 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
           </div>
 
           {/* Navy Branded Footer (#001f3f) */}
-          <div className="bg-[#001f3f] text-white border-t-4 border-red-600 px-6 py-3.5 sm:px-8 print:px-10 print:py-3.5 flex flex-col sm:flex-row print:flex-row items-center justify-between gap-2 text-[11px] mt-auto print:shrink-0 print:break-inside-avoid">
+          <div className="bg-[#001f3f] text-white border-t-4 border-red-600 px-6 py-3.5 sm:px-8 print:px-9 print:py-2.5 flex flex-col sm:flex-row print:flex-row items-center justify-between gap-2 text-[11px] mt-auto print:shrink-0 print:break-inside-avoid">
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-red-500 flex-shrink-0" />
               <span className="font-bold">Official Real Estate Commission Statement</span>
