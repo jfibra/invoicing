@@ -596,7 +596,7 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
         {/* ========================================================================= */}
         {/* THE FORMAL INVOICE SHEET VIEW (Clean Printable Document) */}
         {/* ========================================================================= */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:rounded-none print:p-0 print:w-full print:max-w-none print:box-border print:border-none print:shadow-none">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:rounded-none print:p-0 print:w-full print:max-w-none print:box-border print:border-none print:shadow-none print:min-h-[99vh] print:flex print:flex-col">
           {/* Header Banner (#001f3f Navy for high-contrast white logo) */}
           <div className="bg-[#001f3f] text-white border-b-4 border-red-600 p-6 sm:px-10 sm:py-7 print:px-10 print:py-5 flex flex-col sm:flex-row print:flex-row items-start justify-between gap-6 print:gap-4">
             <div className="space-y-2.5">
@@ -648,7 +648,7 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
           </div>
 
           {/* Body Content */}
-          <div className="p-6 sm:px-10 sm:py-8 print:px-10 print:py-5 space-y-8 print:space-y-3.5">
+          <div className="p-6 sm:px-10 sm:py-8 print:px-10 print:py-7 print:flex-1 print:flex print:flex-col print:justify-between space-y-8 print:space-y-5">
 
           {/* Parties Grid (Agent & Transaction Particulars) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6 print:gap-4 bg-slate-50 p-6 print:p-3.5 rounded-2xl border border-slate-200 text-xs">
@@ -807,9 +807,49 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
               </table>
             </div>
 
-            {/* Totals Summary Card */}
-            <div className="flex flex-col sm:flex-row print:flex-row items-end justify-end pt-4 print:pt-2 print:break-inside-avoid">
-              <div className="w-full sm:w-80 print:w-80 space-y-2 print:space-y-1 border-t border-slate-200 pt-4 print:pt-2">
+            {/* Settlement Info & Totals Summary Row */}
+            <div className="flex flex-col sm:flex-row print:flex-row items-start justify-between gap-6 pt-4 print:pt-4 print:break-inside-avoid">
+              {/* Left: Settlement & Payment Reference */}
+              <div className="w-full sm:flex-1 max-w-md bg-slate-50 border border-slate-200 rounded-2xl p-4 print:p-4 text-xs space-y-1.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <Landmark className="w-3.5 h-3.5 text-red-600" />
+                  <span>Settlement &amp; Statement Reference</span>
+                </span>
+                {profile?.bank_name || profile?.iban ? (
+                  <div className="space-y-1 text-slate-600">
+                    {profile?.bank_name && (
+                      <p>
+                        Bank: <strong className="text-slate-900">{profile.bank_name}</strong>
+                      </p>
+                    )}
+                    {profile?.account_name && (
+                      <p>
+                        Account Name: <strong className="text-slate-900">{profile.account_name}</strong>
+                      </p>
+                    )}
+                    {profile?.iban && (
+                      <p>
+                        IBAN: <strong className="font-mono text-slate-900">{profile.iban}</strong>
+                      </p>
+                    )}
+                    {profile?.swift_code && (
+                      <p>
+                        SWIFT: <strong className="font-mono text-slate-900">{profile.swift_code}</strong>
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-slate-600 leading-relaxed">
+                    Commission payout is processed in accordance with approved agency split agreements and itemized deductions shown above.
+                  </p>
+                )}
+                <p className="text-[11px] text-slate-500 pt-1.5 border-t border-slate-200">
+                  {profile?.payment_terms || "For split or deduction inquiries, please contact Finance prior to signing."}
+                </p>
+              </div>
+
+              {/* Right: Totals Box */}
+              <div className="w-full sm:w-80 print:w-80 space-y-2 print:space-y-1.5 border-t border-slate-200 pt-4 print:pt-3">
                 <div className="flex items-center justify-between text-xs text-slate-600">
                   <span>Net Commission:</span>
                   <span className="font-mono font-bold text-slate-800">
@@ -888,8 +928,22 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
             </div>
           )}
 
-          {/* Signatory & Agent Acknowledgment Section */}
-          <div className="pt-6 print:pt-3 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6 text-xs print:break-inside-avoid">
+          {/* Legal Terms & Verification Block + Signatories Group */}
+          <div className="space-y-6 print:space-y-5 mt-auto">
+            <div className="p-4 print:p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-[11px] text-slate-600 space-y-1 print:break-inside-avoid">
+              <span className="font-black uppercase tracking-wider text-slate-800 text-[10px] block">
+                Terms, Conditions &amp; Verification Notice
+              </span>
+              <p>
+                1. This official commission statement is issued by {profile?.company_name || "FHI Global Property LLC"} for agent review and signature acknowledgment.
+              </p>
+              <p>
+                2. All commission splits, tax treatments, and approved deductions comply with corporate brokerage accounting standards.
+              </p>
+            </div>
+
+            {/* Signatory & Agent Acknowledgment Section */}
+            <div className="pt-4 print:pt-3 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6 text-xs print:break-inside-avoid">
             <div>
               <p className="font-bold text-slate-900 mb-0.5">Authorized Company Signatory</p>
               <p className="text-[11px] text-slate-400 mb-6 print:mb-3">Filipino Homes / FHI Global Property</p>
@@ -924,6 +978,7 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
               )}
             </div>
           </div>
+          </div>
 
           {/* Legal Footnote Notice */}
           <div className="pt-4 print:pt-2 border-t border-slate-100 text-[10px] print:text-[9px] text-slate-400 text-center leading-relaxed">
@@ -933,7 +988,7 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
           </div>
 
           {/* Navy Branded Footer (#001f3f) */}
-          <div className="bg-[#001f3f] text-white border-t-4 border-red-600 px-6 py-4 sm:px-10 print:px-10 print:py-3 flex flex-col sm:flex-row print:flex-row items-center justify-between gap-2 text-[11px] print:break-inside-avoid">
+          <div className="bg-[#001f3f] text-white border-t-4 border-red-600 px-6 py-4 sm:px-10 print:px-10 print:py-3.5 flex flex-col sm:flex-row print:flex-row items-center justify-between gap-2 text-[11px] mt-auto print:shrink-0 print:break-inside-avoid">
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-red-500 flex-shrink-0" />
               <span className="font-bold">Official Real Estate Commission Statement</span>
