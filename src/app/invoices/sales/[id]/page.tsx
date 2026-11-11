@@ -505,7 +505,7 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
         {/* ========================================================================= */}
         {/* INVOICE CANVAS / PRINT SHEET (Pixel-Perfect Matching Company Identity) */}
         {/* ========================================================================= */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-md p-8 sm:p-12 space-y-8 print:rounded-none print:border-none print:shadow-none print:p-0 print:space-y-3">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-md p-8 sm:p-12 space-y-8 print:rounded-none print:border-none print:shadow-none print:px-10 print:py-7 print:w-full print:max-w-none print:box-border print:space-y-3.5">
           {/* Header Row */}
           <div className="flex flex-col sm:flex-row print:flex-row items-start justify-between gap-6 print:gap-4 border-b border-slate-200 pb-8 print:pb-3">
             <div className="space-y-3">
@@ -696,7 +696,7 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
             </div>
 
             {/* Totals Breakdown */}
-            <div className="w-full sm:w-80 print:w-72 space-y-2 print:space-y-1 text-xs">
+            <div className="w-full sm:w-80 print:w-80 space-y-2 print:space-y-1 text-xs">
               <div className="flex justify-between text-slate-600 py-1">
                 <span>Net Commission Subtotal:</span>
                 <span className="font-mono font-bold">

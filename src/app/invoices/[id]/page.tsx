@@ -596,7 +596,7 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
         {/* ========================================================================= */}
         {/* THE FORMAL INVOICE SHEET VIEW (Clean Printable Document) */}
         {/* ========================================================================= */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-10 lg:p-12 space-y-8 print:rounded-none print:p-0 print:border-none print:shadow-none print:space-y-3">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-10 lg:p-12 space-y-8 print:rounded-none print:px-10 print:py-7 print:w-full print:max-w-none print:box-border print:border-none print:shadow-none print:space-y-3.5">
           {/* Header Bar */}
           <div className="flex flex-col sm:flex-row print:flex-row items-start justify-between gap-6 print:gap-4 border-b border-slate-200 pb-8 print:pb-3">
             <div className="space-y-3">
@@ -806,7 +806,7 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
 
             {/* Totals Summary Card */}
             <div className="flex flex-col sm:flex-row print:flex-row items-end justify-end pt-4 print:pt-2 print:break-inside-avoid">
-              <div className="w-full sm:w-80 print:w-72 space-y-2 print:space-y-1 border-t border-slate-200 pt-4 print:pt-2">
+              <div className="w-full sm:w-80 print:w-80 space-y-2 print:space-y-1 border-t border-slate-200 pt-4 print:pt-2">
                 <div className="flex items-center justify-between text-xs text-slate-600">
                   <span>Net Commission:</span>
                   <span className="font-mono font-bold text-slate-800">
@@ -830,9 +830,9 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
                   </div>
                 )}
 
-                <div className="flex items-center justify-between p-3.5 print:p-2.5 bg-red-50 rounded-2xl border border-red-200 text-sm font-black text-red-700 mt-2 print:mt-1">
-                  <span>Gross Payable Amount:</span>
-                  <span className="font-mono text-base">
+                <div className="flex items-center justify-between gap-3 p-3.5 print:p-2.5 bg-red-50 rounded-2xl border border-red-200 text-sm font-black text-red-700 mt-2 print:mt-1">
+                  <span className="whitespace-nowrap">Gross Payable Amount:</span>
+                  <span className="font-mono text-base whitespace-nowrap">
                     {curr}{" "}
                     {Number(invoice.gross_amount || invoice.net_amount || 0).toLocaleString("en-US", {
                       minimumFractionDigits: 2,
