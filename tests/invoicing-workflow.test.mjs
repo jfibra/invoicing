@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
+import { normalizeInvoiceSnapshot } from "../src/lib/snapshotNormalize.mjs";
 
 // ---------------------------------------------------------------------------
 // 1. Loading, Error, Empty, and Populated State Contract Tests
@@ -364,5 +365,82 @@ test("Accessibility & Mobile Sign Layout: Validates keyboard and signing mode co
   assert.equal(res2, "TOGGLED");
   assert.equal(toggled, true);
 });
+
+// ---------------------------------------------------------------------------
+// 12. Invoice Snapshot Normalization (COMMISSION_INVOICE snake_case vs SALES_INVOICE camelCase)
+// ---------------------------------------------------------------------------
+test("Snapshot Normalization: Supports COMMISSION_INVOICE snake_case and SALES_INVOICE camelCase", () => {
+  // Commission Invoice row (generated_invoices schema)
+  const commissionSnap = normalizeInvoiceSnapshot({
+    invoice_type: "TAX_INVOICE",
+    issued_date: "2026-10-17T00:00:00.000Z",
+    agent_code: "1123241352",
+    team_name: "Team Alpha",
+    subteam_name: "Dubai South",
+    developer_name: "Azizi Developments",
+    project_name: "Azizi Riviera",
+    unit_number: "B-402",
+    buyer_name: "Azizi Wares",
+    net_amount: "53170.18",
+    vat_rate: "0",
+    vat_amount: "0.00",
+    gross_amount: "13170.18",
+    currency: "AED",
+    deductibles: JSON.stringify([
+      { label: "Cash Advance", amount: 20000 },
+      { label: "Partial payment", amount: 20000 },
+      { label: "Zero item", amount: 0 },
+    ]),
+    profile_snapshot: JSON.stringify({
+      company_name: "FHI Global Property LLC",
+      tax_number: "105088815300001",
+    }),
+  });
+
+  assert.equal(commissionSnap.companyName, "FHI Global Property LLC");
+  assert.equal(commissionSnap.companyTrn, "105088815300001");
+  assert.equal(commissionSnap.invoiceTypeLabel, "TAX INVOICE");
+  assert.equal(commissionSnap.issuedDate, "2026-10-17T00:00:00.000Z");
+  assert.equal(commissionSnap.memberCode, "1123241352");
+  assert.equal(commissionSnap.team, "Team Alpha");
+  assert.equal(commissionSnap.subteam, "Dubai South");
+  assert.equal(commissionSnap.customerOrDeveloper, "Azizi Developments");
+  assert.equal(commissionSnap.projectOrParticular, "Azizi Riviera");
+  assert.equal(commissionSnap.unitNumber, "B-402");
+  assert.equal(commissionSnap.buyerName, "Azizi Wares");
+  assert.equal(commissionSnap.netAmount, 53170.18);
+  assert.equal(commissionSnap.vatRate, 0);
+  assert.equal(commissionSnap.vatAmount, 0);
+  assert.equal(commissionSnap.deductibles.length, 2);
+  assert.equal(commissionSnap.totalDeductibles, 40000);
+  assert.equal(commissionSnap.totalAmount, 13170.18);
+
+  // Sales Invoice snapshot (camelCase)
+  const salesSnap = normalizeInvoiceSnapshot({
+    companyName: "FHI Global Property LLC",
+    companyTrn: "105088815300001",
+    saleDate: "2026-09-12",
+    memberCode: "FH-9901",
+    team: "Core Sales",
+    customerName: "Emaar Properties",
+    categoryName: "COMMISSION SALES",
+    subcategoryName: "Downtown Views",
+    tinNumber: "100222333",
+    amount: 10000,
+    vatAmount: 500,
+    totalActualAmount: 10500,
+    currency: "AED",
+  });
+
+  assert.equal(salesSnap.customerOrDeveloper, "Emaar Properties");
+  assert.equal(salesSnap.projectOrParticular, "Downtown Views");
+  assert.equal(salesSnap.memberCode, "FH-9901");
+  assert.equal(salesSnap.netAmount, 10000);
+  assert.equal(salesSnap.vatAmount, 500);
+  assert.equal(salesSnap.vatRate, 5);
+  assert.equal(salesSnap.totalAmount, 10500);
+  assert.equal(salesSnap.deductibles.length, 0);
+});
+
 
 

@@ -398,7 +398,7 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
   const totalDeductiblesVal = parsedDeductibles.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 font-sans selection:bg-red-600 selection:text-white pb-20">
+    <div className="min-h-screen bg-slate-100 text-slate-900 font-sans selection:bg-red-600 selection:text-white pb-20 print:min-h-0 print:bg-white print:pb-0">
       {/* Top Controls Action Bar */}
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-6 py-3 shadow-xs print:hidden">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -482,11 +482,11 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
       </header>
 
       {/* Main Content Area */}
-      <main className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      <main className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 print:max-w-none print:p-0 print:m-0 print:space-y-0">
         {/* Action Status Banner */}
         {actionMsg && (
           <div
-            className={`p-4 rounded-2xl text-xs font-semibold flex items-center justify-between gap-2 border ${
+            className={`p-4 rounded-2xl text-xs font-semibold flex items-center justify-between gap-2 border print:hidden ${
               actionMsg.type === "success"
                 ? "bg-emerald-50 text-emerald-800 border-emerald-200"
                 : "bg-rose-50 text-rose-800 border-rose-200"
@@ -501,7 +501,7 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
 
         {/* E-SIGNATURE VERIFICATION BADGE (If signed) */}
         {isSigned && (
-          <div className="bg-emerald-50 border-2 border-emerald-300 rounded-3xl p-6 text-emerald-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+          <div className="bg-emerald-50 border-2 border-emerald-300 rounded-3xl p-6 text-emerald-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs print:hidden">
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center flex-shrink-0 shadow-xs">
                 <ShieldCheck className="w-7 h-7" />
@@ -543,7 +543,7 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
 
         {/* E-SIGNATURE DECLINED ALERT */}
         {isDeclined && (
-          <div className="bg-rose-50 border border-rose-200 rounded-3xl p-6 text-rose-900 flex items-start gap-3.5 shadow-xs">
+          <div className="bg-rose-50 border border-rose-200 rounded-3xl p-6 text-rose-900 flex items-start gap-3.5 shadow-xs print:hidden">
             <XCircle className="w-6 h-6 text-rose-600 flex-shrink-0 mt-0.5" />
             <div className="space-y-1">
               <h3 className="text-sm font-black text-rose-900">Invoice Signature Declined by Agent</h3>
@@ -559,7 +559,7 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
 
         {/* E-SIGNATURE PENDING BANNER */}
         {isPending && (
-          <div className="bg-blue-50 border border-blue-200 rounded-3xl p-5 text-blue-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+          <div className="bg-blue-50 border border-blue-200 rounded-3xl p-5 text-blue-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs print:hidden">
             <div className="flex items-center gap-3">
               <Clock className="w-5 h-5 text-blue-600 flex-shrink-0" />
               <div>
@@ -596,9 +596,9 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
         {/* ========================================================================= */}
         {/* THE FORMAL INVOICE SHEET VIEW (Clean Printable Document) */}
         {/* ========================================================================= */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-10 lg:p-12 space-y-8 print:p-0 print:border-none print:shadow-none">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-10 lg:p-12 space-y-8 print:rounded-none print:p-0 print:border-none print:shadow-none print:space-y-3">
           {/* Header Bar */}
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 border-b border-slate-200 pb-8">
+          <div className="flex flex-col sm:flex-row print:flex-row items-start justify-between gap-6 print:gap-4 border-b border-slate-200 pb-8 print:pb-3">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <Image
@@ -628,7 +628,7 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
               </div>
             </div>
 
-            <div className="sm:text-right space-y-2">
+            <div className="sm:text-right print:text-right space-y-2 print:space-y-1">
               <span className="inline-block px-3 py-1 rounded-xl bg-red-50 text-red-700 border border-red-200 text-xs font-black uppercase tracking-wider">
                 {invoice.invoice_type ? String(invoice.invoice_type).replace(/_/g, " ") : "COMMISSION INVOICE"}
               </span>
@@ -648,7 +648,7 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
           </div>
 
           {/* Parties Grid (Agent & Transaction Particulars) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-200 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6 print:gap-4 bg-slate-50 p-6 print:p-3.5 rounded-2xl border border-slate-200 text-xs">
             {/* Agent / Recipient Column */}
             <div className="space-y-2">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
@@ -673,7 +673,7 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
             </div>
 
             {/* Deal / Property Particulars Column */}
-            <div className="space-y-2 sm:border-l sm:border-slate-200 sm:pl-6">
+            <div className="space-y-2 sm:border-l sm:border-slate-200 sm:pl-6 print:border-l print:border-slate-200 print:pl-4">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                 <Building className="w-3.5 h-3.5 text-red-600" />
                 <span>Deal &amp; Property Particulars</span>
@@ -720,8 +720,8 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
               <span>Commission Breakdown &amp; Deductibles</span>
             </h3>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+            <div className="overflow-x-auto print:overflow-visible">
+              <table className="w-full text-left text-xs border-collapse print:[&_th]:py-1.5 print:[&_th]:px-2.5 print:[&_td]:py-1.5 print:[&_td]:px-2.5">
                 <thead>
                   <tr className="border-b border-slate-200 text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-50/50">
                     <th className="py-3 px-4">Item Description</th>
@@ -805,8 +805,8 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
             </div>
 
             {/* Totals Summary Card */}
-            <div className="flex flex-col sm:flex-row items-end justify-end pt-4">
-              <div className="w-full sm:w-80 space-y-2 border-t border-slate-200 pt-4">
+            <div className="flex flex-col sm:flex-row print:flex-row items-end justify-end pt-4 print:pt-2 print:break-inside-avoid">
+              <div className="w-full sm:w-80 print:w-72 space-y-2 print:space-y-1 border-t border-slate-200 pt-4 print:pt-2">
                 <div className="flex items-center justify-between text-xs text-slate-600">
                   <span>Net Commission:</span>
                   <span className="font-mono font-bold text-slate-800">
@@ -830,7 +830,7 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
                   </div>
                 )}
 
-                <div className="flex items-center justify-between p-3.5 bg-red-50 rounded-2xl border border-red-200 text-sm font-black text-red-700 mt-2">
+                <div className="flex items-center justify-between p-3.5 print:p-2.5 bg-red-50 rounded-2xl border border-red-200 text-sm font-black text-red-700 mt-2 print:mt-1">
                   <span>Gross Payable Amount:</span>
                   <span className="font-mono text-base">
                     {curr}{" "}
@@ -845,7 +845,7 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
 
           {/* Remarks block if any */}
           {invoice.remarks && (
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-1">
+            <div className="p-4 print:p-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs space-y-1">
               <span className="font-bold text-slate-700 block">Statement Remarks:</span>
               <p className="text-slate-600 leading-relaxed">{invoice.remarks}</p>
             </div>
@@ -853,7 +853,7 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
 
           {/* Attachments Section if any */}
           {attachments.length > 0 && (
-            <div className="pt-4 border-t border-slate-200 space-y-3">
+            <div className="pt-4 border-t border-slate-200 space-y-3 print:hidden">
               <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
                 <Paperclip className="w-4 h-4 text-purple-600" />
                 <span>Supporting Document Attachments ({attachments.length})</span>
@@ -885,8 +885,45 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
             </div>
           )}
 
+          {/* Signatory & Agent Acknowledgment Section */}
+          <div className="pt-6 print:pt-3 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6 text-xs print:break-inside-avoid">
+            <div>
+              <p className="font-bold text-slate-900 mb-0.5">Authorized Company Signatory</p>
+              <p className="text-[11px] text-slate-400 mb-6 print:mb-3">Filipino Homes / FHI Global Property</p>
+              <div className="w-56 border-b border-slate-300 pb-1">
+                <span className="font-serif italic text-slate-500 text-sm">FHI Management</span>
+              </div>
+            </div>
+
+            <div>
+              <p className="font-bold text-slate-900 mb-0.5">Agent Acknowledgment &amp; Signature</p>
+              <p className="text-[11px] text-slate-400 mb-2">Electronic acknowledgment of commission statement</p>
+              {isSigned && activeSig?.signed_signature_data ? (
+                <div className="space-y-1">
+                  <div className="h-12 flex items-end">
+                    <img
+                      src={activeSig.signed_signature_data}
+                      alt="Agent Signature"
+                      className="max-h-12 object-contain"
+                    />
+                  </div>
+                  <div className="w-56 border-b border-emerald-500 pb-0.5">
+                    <span className="font-mono text-emerald-700 font-bold">{activeSig.signed_name}</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    Signed electronically on {new Date(activeSig.signed_at).toLocaleString()}
+                  </p>
+                </div>
+              ) : (
+                <div className="w-56 border-b border-slate-300 pb-1 mt-6 print:mt-3">
+                  <span className="text-slate-400 italic">Pending Agent Signature</span>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Legal Footnote */}
-          <div className="pt-8 border-t border-slate-100 text-[10px] text-slate-400 text-center leading-relaxed">
+          <div className="pt-8 print:pt-3 border-t border-slate-100 text-[10px] print:text-[9px] text-slate-400 text-center leading-relaxed">
             This statement was generated electronically by the FHI Global Property Commission Management System.
             All commissions and applicable tax calculations adhere to standard corporate accounting principles.
           </div>
@@ -896,7 +933,7 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
         {/* E-SIGNATURE AUDIT TRAIL LOG */}
         {/* ========================================================================= */}
         {signatureHistory && signatureHistory.events.length > 0 && (
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-4 shadow-2xs">
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-4 shadow-2xs print:hidden">
             <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
               <span>E-Signature Tamper-Evident Audit Trail</span>

@@ -390,7 +390,7 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans selection:bg-red-600 selection:text-white pb-16">
+    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans selection:bg-red-600 selection:text-white pb-16 print:min-h-0 print:bg-white print:pb-0">
       {/* Top Controls Bar (Hidden during print) */}
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-6 py-4 shadow-xs print:hidden">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -440,11 +440,11 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-5xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      <main className="max-w-5xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6 print:max-w-none print:p-0 print:m-0 print:space-y-0">
         {/* Status Alert Banner if present */}
         {actionMsg && (
           <div
-            className={`p-4 rounded-2xl border text-xs font-bold flex items-center justify-between ${
+            className={`p-4 rounded-2xl border text-xs font-bold flex items-center justify-between print:hidden ${
               actionMsg.type === "success"
                 ? "bg-emerald-50 border-emerald-200 text-emerald-800"
                 : "bg-red-50 border-red-200 text-red-800"
@@ -505,9 +505,9 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
         {/* ========================================================================= */}
         {/* INVOICE CANVAS / PRINT SHEET (Pixel-Perfect Matching Company Identity) */}
         {/* ========================================================================= */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-md p-8 sm:p-12 space-y-8 print:border-none print:shadow-none print:p-0">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-md p-8 sm:p-12 space-y-8 print:rounded-none print:border-none print:shadow-none print:p-0 print:space-y-3">
           {/* Header Row */}
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 border-b border-slate-200 pb-8">
+          <div className="flex flex-col sm:flex-row print:flex-row items-start justify-between gap-6 print:gap-4 border-b border-slate-200 pb-8 print:pb-3">
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <Image
@@ -538,7 +538,7 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
             </div>
 
             {/* Document Title & Meta */}
-            <div className="sm:text-right space-y-2">
+            <div className="sm:text-right print:text-right space-y-2 print:space-y-1">
               <span className="px-3 py-1 rounded-full bg-red-100 text-red-700 text-[11px] font-black uppercase tracking-wider inline-block">
                 TAX INVOICE &bull; SALES RECORD
               </span>
@@ -572,7 +572,7 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
           </div>
 
           {/* Party Details Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/60 p-6 rounded-2xl border border-slate-100 text-xs">
+          <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6 print:gap-4 bg-slate-50/60 p-6 print:p-3.5 rounded-2xl border border-slate-100 text-xs">
             {/* Customer / Developer */}
             <div className="space-y-2">
               <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
@@ -595,7 +595,7 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
             </div>
 
             {/* Agent Attribution */}
-            <div className="space-y-2 md:border-l md:border-slate-200 md:pl-6">
+            <div className="space-y-2 md:border-l md:border-slate-200 md:pl-6 print:border-l print:border-slate-200 print:pl-4">
               <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
                 Agent Attribution &bull; Commission Split
               </span>
@@ -626,8 +626,8 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
           </div>
 
           {/* Table of Ledger Particulars */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="overflow-x-auto print:overflow-visible">
+            <table className="w-full text-left text-xs border-collapse print:[&_th]:py-1.5 print:[&_td]:py-2">
               <thead>
                 <tr className="border-b-2 border-slate-200 text-slate-500 font-extrabold text-[10px] uppercase tracking-wider">
                   <th className="py-3 px-2">Line Particulars / Project</th>
@@ -666,13 +666,13 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
           </div>
 
           {/* Financial Calculation Totals Box */}
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 pt-4 border-t border-slate-200">
+          <div className="flex flex-col sm:flex-row print:flex-row items-start justify-between gap-6 print:gap-4 pt-4 print:pt-2 border-t border-slate-200 print:break-inside-avoid">
             {/* Settlement Instructions */}
-            <div className="space-y-3 max-w-md text-xs">
+            <div className="space-y-3 print:space-y-1.5 max-w-md text-xs">
               <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
                 Settlement &amp; Bank Instructions
               </span>
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-1.5 text-slate-700">
+              <div className="bg-slate-50 p-4 print:p-3 rounded-2xl border border-slate-200 space-y-1.5 print:space-y-1 text-slate-700">
                 <p className="font-extrabold text-slate-900 flex items-center gap-1.5">
                   <Landmark className="w-3.5 h-3.5 text-emerald-600" />
                   {profile?.bank_name || "WIO Bank"}
@@ -696,7 +696,7 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
             </div>
 
             {/* Totals Breakdown */}
-            <div className="w-full sm:w-80 space-y-2 text-xs">
+            <div className="w-full sm:w-80 print:w-72 space-y-2 print:space-y-1 text-xs">
               <div className="flex justify-between text-slate-600 py-1">
                 <span>Net Commission Subtotal:</span>
                 <span className="font-mono font-bold">
@@ -719,10 +719,10 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
           </div>
 
           {/* Signed Document Signature Section */}
-          <div className="pt-8 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-8 text-xs">
+          <div className="pt-8 print:pt-3 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-8 print:gap-6 text-xs print:break-inside-avoid">
             <div>
               <p className="font-bold text-slate-900 mb-1">Authorized Company Signatory</p>
-              <p className="text-[11px] text-slate-400 mb-8">Filipino Homes / Leuterio Realty Brokerage</p>
+              <p className="text-[11px] text-slate-400 mb-8 print:mb-3">Filipino Homes / Leuterio Realty Brokerage</p>
               <div className="w-56 border-b border-slate-300 pb-1">
                 <span className="font-serif italic text-slate-500 text-sm">FHI Management</span>
               </div>
@@ -749,7 +749,7 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
                   </p>
                 </div>
               ) : (
-                <div className="w-56 border-b border-slate-300 pb-1 mt-8">
+                <div className="w-56 border-b border-slate-300 pb-1 mt-8 print:mt-3">
                   <span className="text-slate-400 italic">Pending Agent Signature</span>
                 </div>
               )}

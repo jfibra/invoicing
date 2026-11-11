@@ -19,6 +19,7 @@ import {
   Landmark,
 } from "lucide-react";
 import { jsPDF } from "jspdf";
+import { normalizeInvoiceSnapshot } from "@/lib/snapshotNormalize";
 
 interface SignPageProps {
   params: Promise<{ token: string }>;
@@ -254,7 +255,7 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
   // Download PDF
   const handleDownloadPdf = () => {
     if (!sigData?.snapshot) return;
-    const snap = sigData.snapshot;
+    const norm = normalizeInvoiceSnapshot(sigData.snapshot);
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
     doc.setFillColor(220, 38, 38);
@@ -262,47 +263,81 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
-    doc.text("COMMISSION INVOICE STATEMENT", 15, 16);
+    doc.text(norm.invoiceTypeLabel.toUpperCase(), 15, 16);
 
     doc.setTextColor(30, 41, 59);
     doc.setFontSize(12);
-    doc.text(snap.companyName || "FHI Global Property LLC", 15, 36);
+    doc.text(norm.companyName, 15, 36);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(100, 116, 139);
-    doc.text(`TRN: ${snap.companyTrn || "105088815300001"}`, 15, 42);
-    doc.text(`Invoice #: ${sigData.invoice_number}`, 140, 36);
-    doc.text(`Agent: ${sigData.agent_name}`, 140, 42);
-    doc.text(`Status: ${sigData.status}`, 140, 47);
+    doc.text(`TRN: ${norm.companyTrn}`, 15, 42);
+    doc.text(`Date: ${norm.issuedDate ? new Date(norm.issuedDate).toLocaleDateString() : "N/A"}`, 15, 47);
+
+    doc.text(`Invoice #: ${sigData.invoice_number}`, 135, 36);
+    doc.text(`Agent: ${sigData.agent_name} (${norm.memberCode})`, 135, 42);
+    doc.text(`Team: ${norm.team}${norm.subteam ? ` • ${norm.subteam}` : ""}`, 135, 47);
+    doc.text(`Status: ${sigData.status}`, 135, 52);
 
     doc.setDrawColor(226, 232, 240);
-    doc.line(15, 54, 195, 54);
+    doc.line(15, 57, 195, 57);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.text("STATEMENT DETAILS", 15, 62);
+    doc.text("STATEMENT DETAILS", 15, 65);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    doc.text(`Client/Developer: ${snap.customerName || snap.developerName || "N/A"}`, 15, 70);
-    doc.text(`Particular: ${snap.categoryName || "Commission"} - ${snap.subcategoryName || snap.projectName || ""}`, 15, 76);
+    doc.text(`Client/Developer: ${norm.customerOrDeveloper}`, 15, 73);
+    doc.text(
+      `Project / Particular: ${norm.projectOrParticular}${norm.unitNumber ? ` • Unit ${norm.unitNumber}` : ""}`,
+      15,
+      79
+    );
+    if (norm.buyerName) {
+      doc.text(`Buyer: ${norm.buyerName}`, 15, 85);
+    }
 
-    doc.text(`Net Amount: ${snap.currency || "AED"} ${Number(snap.amount || snap.netAmount || 0).toLocaleString()}`, 15, 84);
-    doc.text(`VAT: ${snap.currency || "AED"} ${Number(snap.vatAmount || 0).toLocaleString()}`, 15, 90);
+    let y = norm.buyerName ? 94 : 88;
+    doc.text(
+      `Net Commission: ${norm.currency} ${norm.netAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+      15,
+      y
+    );
+    y += 6;
+    doc.text(
+      `VAT (${norm.vatRate}%): ${norm.currency} ${norm.vatAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+      15,
+      y
+    );
+    for (const ded of norm.deductibles) {
+      y += 6;
+      doc.text(
+        `Less Deductible (${ded.label}): - ${norm.currency} ${ded.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+        15,
+        y
+      );
+    }
+    y += 8;
     doc.setFont("helvetica", "bold");
-    doc.text(`Total Amount: ${snap.currency || "AED"} ${Number(snap.totalActualAmount || snap.grossAmount || 0).toLocaleString()}`, 15, 98);
+    doc.text(
+      `Total Payable: ${norm.currency} ${norm.totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+      15,
+      y
+    );
 
     if (sigData.status === "SIGNED") {
+      const boxY = Math.max(y + 12, 120);
       doc.setFillColor(240, 253, 244);
-      doc.rect(15, 110, 180, 25, "F");
+      doc.rect(15, boxY, 180, 25, "F");
       doc.setTextColor(22, 163, 74);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
-      doc.text(`SIGNED ELECTRONICALLY BY: ${sigData.signed_name}`, 20, 118);
+      doc.text(`SIGNED ELECTRONICALLY BY: ${sigData.signed_name}`, 20, boxY + 8);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
-      doc.text(`Timestamp: ${new Date(sigData.signed_at).toLocaleString()}`, 20, 124);
-      doc.text(`Hash: ${sigData.snapshot_hash || "SHA-256 Verified"}`, 20, 129);
+      doc.text(`Timestamp: ${new Date(sigData.signed_at).toLocaleString()}`, 20, boxY + 14);
+      doc.text(`Hash: ${sigData.snapshot_hash || "SHA-256 Verified"}`, 20, boxY + 19);
     }
 
     doc.save(`Invoice_${sigData.invoice_number}.pdf`);
@@ -333,17 +368,17 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
     );
   }
 
-  const snap = sigData.snapshot || {};
+  const norm = normalizeInvoiceSnapshot(sigData.snapshot);
   const isSigned = sigData.status === "SIGNED";
   const isDeclined = sigData.status === "DECLINED";
   const isExpired = sigData.status === "EXPIRED";
   const isRevoked = sigData.status === "REVOKED";
   const canSign = !isSigned && !isDeclined && !isExpired && !isRevoked;
 
-  const curr = snap.currency || "AED";
+  const curr = norm.currency;
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 font-sans selection:bg-red-600 selection:text-white pb-20">
+    <div className="min-h-screen bg-slate-100 text-slate-900 font-sans selection:bg-red-600 selection:text-white pb-20 print:min-h-0 print:bg-white print:pb-0">
       {/* Top Banner */}
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-6 py-3 shadow-xs print:hidden">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -381,10 +416,10 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
       </header>
 
       {/* Main Container */}
-      <main className="max-w-4xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      <main className="max-w-4xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6 print:max-w-none print:p-0 print:space-y-0">
         {/* Status Callout Banner */}
         {isSigned && (
-          <div className="bg-emerald-50 border-2 border-emerald-300 rounded-3xl p-6 text-emerald-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+          <div className="bg-emerald-50 border-2 border-emerald-300 rounded-3xl p-6 text-emerald-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs print:hidden">
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center flex-shrink-0 shadow-xs">
                 <CheckCircle2 className="w-6 h-6" />
@@ -407,7 +442,7 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
         )}
 
         {isDeclined && (
-          <div className="bg-rose-50 border-2 border-rose-300 rounded-3xl p-6 text-rose-900 flex items-start gap-3.5">
+          <div className="bg-rose-50 border-2 border-rose-300 rounded-3xl p-6 text-rose-900 flex items-start gap-3.5 print:hidden">
             <XCircle className="w-6 h-6 text-rose-600 flex-shrink-0 mt-0.5" />
             <div>
               <h2 className="text-base font-black">Invoice Declined</h2>
@@ -422,7 +457,7 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
         )}
 
         {isExpired && (
-          <div className="bg-slate-200 border-2 border-slate-300 rounded-3xl p-6 text-slate-800 flex items-center gap-3.5">
+          <div className="bg-slate-200 border-2 border-slate-300 rounded-3xl p-6 text-slate-800 flex items-center gap-3.5 print:hidden">
             <Clock className="w-6 h-6 text-slate-500" />
             <div>
               <h2 className="text-base font-black">Signing Link Expired</h2>
@@ -434,7 +469,7 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
         )}
 
         {isRevoked && (
-          <div className="bg-slate-200 border-2 border-slate-300 rounded-3xl p-6 text-slate-800 flex items-center gap-3.5">
+          <div className="bg-slate-200 border-2 border-slate-300 rounded-3xl p-6 text-slate-800 flex items-center gap-3.5 print:hidden">
             <Lock className="w-6 h-6 text-slate-500" />
             <div>
               <h2 className="text-base font-black">Signing Link Revoked</h2>
@@ -446,27 +481,27 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
         )}
 
         {/* Invoice Statement Card */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-10 space-y-6">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-10 space-y-6 print:rounded-none print:border-none print:shadow-none print:p-0 print:space-y-4">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-4 border-b border-slate-200 pb-6">
+          <div className="flex flex-col sm:flex-row print:flex-row items-start justify-between gap-4 border-b border-slate-200 pb-6 print:pb-4">
             <div>
               <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-                {snap.companyName || "FHI Global Property LLC"}
+                {norm.companyName}
               </h1>
               <p className="text-xs text-slate-500 mt-0.5">
-                TRN: <span className="font-mono font-bold text-slate-700">{snap.companyTrn || "105088815300001"}</span>
+                TRN: <span className="font-mono font-bold text-slate-700">{norm.companyTrn}</span>
               </p>
             </div>
-            <div className="sm:text-right text-xs space-y-1">
+            <div className="sm:text-right print:text-right text-xs space-y-1">
               <span className="px-3 py-1 rounded-full bg-slate-900 text-white font-black text-[10px] uppercase tracking-wider inline-block">
-                Commission Statement
+                {norm.invoiceTypeLabel}
               </span>
               <p className="font-mono text-sm font-black text-red-600">{sigData.invoice_number}</p>
               <p className="text-slate-400">
                 Date:{" "}
                 <span className="text-slate-700 font-semibold">
-                  {snap.saleDate || snap.issuedDate
-                    ? new Date(snap.saleDate || snap.issuedDate).toLocaleDateString()
+                  {norm.issuedDate
+                    ? new Date(norm.issuedDate).toLocaleDateString()
                     : "N/A"}
                 </span>
               </p>
@@ -474,69 +509,89 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
           </div>
 
           {/* Parties */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-4 bg-slate-50 p-4 print:p-3.5 rounded-2xl text-xs">
             <div>
               <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Agent Recipient</span>
               <strong className="text-slate-900 text-sm block">{sigData.agent_name}</strong>
               <p className="text-slate-500">
-                Code: {snap.memberCode || snap.agentCode || "N/A"} &bull; {snap.team || snap.teamName || "Direct"}
+                Code: {norm.memberCode} &bull; {norm.team}
+                {norm.subteam ? ` • ${norm.subteam}` : ""}
               </p>
               <p className="font-mono text-slate-600">{sigData.agent_email}</p>
             </div>
-            <div className="sm:border-l sm:border-slate-200 sm:pl-4">
+            <div className="sm:border-l sm:border-slate-200 sm:pl-4 print:border-l print:border-slate-200 print:pl-4">
               <span className="text-[10px] font-extrabold uppercase text-slate-400 block">Client / Developer</span>
               <strong className="text-slate-900 text-sm block">
-                {snap.customerName || snap.developerName || "N/A"}
+                {norm.customerOrDeveloper}
               </strong>
               <p className="text-slate-500">
-                Project / Particular: {snap.subcategoryName || snap.projectName || "General Brokerage"}
+                Project / Particular: {norm.projectOrParticular}
+                {norm.unitNumber ? ` • Unit ${norm.unitNumber}` : ""}
               </p>
-              {snap.tinNumber && <p className="font-mono text-slate-600">TRN/TIN: {snap.tinNumber}</p>}
+              {norm.buyerName && <p className="text-slate-500">Buyer: {norm.buyerName}</p>}
+              {norm.tinNumber && <p className="font-mono text-slate-600">TRN/TIN: {norm.tinNumber}</p>}
             </div>
           </div>
 
           {/* Breakdown Table */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto print:overflow-visible">
             <table className="w-full text-left text-xs">
               <thead className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
                 <tr>
-                  <th className="py-2.5">Item Description</th>
-                  <th className="py-2.5 text-right">Net Commission</th>
-                  <th className="py-2.5 text-right">VAT (5%)</th>
-                  <th className="py-2.5 text-right">Total Payout</th>
+                  <th className="py-2.5 print:py-1.5">Item Description</th>
+                  <th className="py-2.5 print:py-1.5 text-right">Net Commission</th>
+                  <th className="py-2.5 print:py-1.5 text-right">VAT ({norm.vatRate}%)</th>
+                  <th className="py-2.5 print:py-1.5 text-right">Total Payout</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 <tr>
-                  <td className="py-4">
-                    <p className="font-black text-slate-900">
-                      {snap.categoryName || "Real Estate Brokerage Sales Commission"}
-                    </p>
+                  <td className="py-4 print:py-2.5">
+                    <p className="font-black text-slate-900">{norm.categoryTitle}</p>
                     <p className="text-slate-500 text-[11px] mt-0.5">
-                      {snap.subcategoryName || snap.projectName || "Standard Deal"}
+                      {norm.projectOrParticular}
+                      {norm.unitNumber ? ` • Unit ${norm.unitNumber}` : ""}
                     </p>
                   </td>
-                  <td className="py-4 text-right font-mono font-bold text-slate-800">
-                    {Number(snap.amount || snap.netAmount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  <td className="py-4 print:py-2.5 text-right font-mono font-bold text-slate-800">
+                    {norm.netAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                   </td>
-                  <td className="py-4 text-right font-mono text-slate-600">
-                    {Number(snap.vatAmount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  <td className="py-4 print:py-2.5 text-right font-mono text-slate-600">
+                    {norm.vatAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                   </td>
-                  <td className="py-4 text-right font-mono font-black text-slate-900 text-sm">
-                    {Number(snap.totalActualAmount || snap.grossAmount || 0).toLocaleString("en-US", {
+                  <td className="py-4 print:py-2.5 text-right font-mono font-black text-slate-900 text-sm">
+                    {norm.totalAmount.toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                     })}
                   </td>
                 </tr>
+
+                {norm.deductibles.map((ded, idx) => (
+                  <tr key={idx} className="bg-amber-50/30">
+                    <td className="py-2.5 print:py-1.5 text-amber-900 font-semibold" colSpan={3}>
+                      Less Deductible: {ded.label}
+                    </td>
+                    <td className="py-2.5 print:py-1.5 text-right font-mono font-bold text-amber-700">
+                      - {ded.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
 
+          {norm.remarks && (
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600">
+              <span className="font-bold text-slate-700">Remarks: </span>
+              {norm.remarks}
+            </div>
+          )}
+
           {/* Total Bar */}
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between text-xs">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 print:p-3 flex items-center justify-between text-xs print:break-inside-avoid">
             <span className="font-extrabold text-slate-700">Total Net Amount Payable:</span>
             <span className="font-mono text-lg font-black text-emerald-700">
-              {curr} {Number(snap.totalActualAmount || snap.grossAmount || 0).toLocaleString("en-US", {
+              {curr} {norm.totalAmount.toLocaleString("en-US", {
                 minimumFractionDigits: 2,
               })}
             </span>
@@ -544,11 +599,11 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
 
           {/* Existing Signature Stamp if signed */}
           {isSigned && sigData.signed_signature_data && (
-            <div className="pt-6 border-t border-slate-200 space-y-2">
+            <div className="pt-6 print:pt-3 border-t border-slate-200 space-y-2 print:break-inside-avoid">
               <span className="text-[10px] font-extrabold uppercase text-slate-400 block">
                 Recorded Electronic Signature
               </span>
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 inline-block">
+              <div className="p-4 print:p-3 bg-slate-50 rounded-2xl border border-slate-200 inline-block">
                 <img
                   src={sigData.signed_signature_data}
                   alt="Saved Signature"
