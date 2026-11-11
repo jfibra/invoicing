@@ -35,7 +35,7 @@ import {
   Layers,
 } from "lucide-react";
 import SendSignatureModal from "@/components/SendSignatureModal";
-import { jsPDF } from "jspdf";
+import { generateInvoicePdf } from "@/lib/invoicePdfGenerator";
 
 interface CommissionInvoicePageProps {
   params: Promise<{ id: string }>;
@@ -95,130 +95,19 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
     fetchInvoice();
   }, [fetchInvoice]);
 
-  // Handle PDF Download using jsPDF
-  const handleDownloadPdf = () => {
+  // Handle PDF Download using unified executive A4 generator
+  const handleDownloadPdf = async () => {
     if (!invoice) return;
     setDownloadingPdf(true);
     try {
-      const doc = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
-
       const curr = invoice.currency || "AED";
-      const primaryColor = [220, 38, 38]; // Red 600
-
-      // Header Banner
-      doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.rect(0, 0, 210, 28, "F");
-
-      doc.setTextColor(255, 255, 255);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(15);
-      doc.text(
-        invoice.invoice_type
-          ? String(invoice.invoice_type).replace(/_/g, " ").toUpperCase()
-          : "COMMISSION INVOICE",
-        15,
-        18
-      );
-
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.text(`REFERENCE #: ${invoice.invoice_number}`, 140, 18);
-
-      // Company Info
+      const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
       const compName = profile?.company_name || "FHI GLOBAL PROPERTY REAL ESTATE BROKERAGE LLC";
       const trnVal = profile?.tax_number || profile?.trn_number || "105088815300001";
       const compAddress = address
-        ? `${address.address_line1 || ""} ${address.city || ""}, ${address.country || ""}`
+        ? `${address.address_line1 || ""}${address.address_line2 ? ` • ${address.address_line2}` : ""} • ${address.city || ""}, ${address.country || ""}`.replace(/\s+/g, " ").trim()
         : "Dubai, United Arab Emirates";
 
-      doc.setTextColor(30, 41, 59);
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text(compName, 15, 38);
-
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(100, 116, 139);
-      doc.text(`TRN / TIN: ${trnVal}`, 15, 44);
-      doc.text(compAddress, 15, 49);
-
-      // Invoice Date & Lock
-      doc.text(
-        `Issue Date: ${invoice.issued_date ? new Date(invoice.issued_date).toISOString().slice(0, 10) : "N/A"}`,
-        140,
-        38
-      );
-      doc.text(`Status: ${invoice.is_locked ? "Locked" : "Active"}`, 140, 44);
-
-      // Divider
-      doc.setDrawColor(226, 232, 240);
-      doc.line(15, 54, 195, 54);
-
-      // Agent & Particulars Section
-      doc.setTextColor(30, 41, 59);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.text("AGENT DETAILS", 15, 62);
-      doc.text("PROPERTY & TRANSACTION DETAILS", 105, 62);
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8.5);
-      doc.setTextColor(71, 85, 105);
-
-      // Agent column
-      doc.text(`Name: ${invoice.agent_name || "N/A"}`, 15, 69);
-      doc.text(`Agent Code: ${invoice.agent_code || "N/A"}`, 15, 75);
-      doc.text(`Team: ${invoice.team_name || "General"} ${invoice.subteam_name ? `• ${invoice.subteam_name}` : ""}`, 15, 81);
-      doc.text(`Email: ${invoice.agent_email || "N/A"}`, 15, 87);
-
-      // Property column
-      doc.text(`Developer: ${invoice.developer_name || "Not specified"}`, 105, 69);
-      doc.text(`Project: ${invoice.project_name || "Not specified"}`, 105, 75);
-      doc.text(`Unit #: ${invoice.unit_number || "Not specified"}`, 105, 81);
-      doc.text(`Buyer / Client: ${invoice.buyer_name || "Not specified"}`, 105, 87);
-
-      // Divider
-      doc.line(15, 93, 195, 93);
-
-      // Table Header
-      doc.setFillColor(248, 250, 252);
-      doc.rect(15, 96, 180, 8, "F");
-      doc.setTextColor(71, 85, 105);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      doc.text("FINANCIAL COMPONENT", 18, 101);
-      doc.text("RATE / TERMS", 100, 101);
-      doc.text("AMOUNT", 175, 101);
-
-      // Rows
-      let y = 109;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8.5);
-      doc.setTextColor(30, 41, 59);
-
-      // 1. Commission Received
-      doc.text("Commission Received from Developer", 18, y);
-      doc.text("Gross Base", 100, y);
-      doc.text(`${curr} ${Number(invoice.commission_received || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, 175, y);
-      y += 7;
-
-      // 2. Agent Split
-      doc.text("Agent Commission Split", 18, y);
-      doc.text(`${Number(invoice.commission_rate || 0)}% Split`, 100, y);
-      doc.text(`${curr} ${Number(invoice.net_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, 175, y);
-      y += 7;
-
-      // 3. VAT
-      doc.text("Value Added Tax (Output VAT)", 18, y);
-      doc.text(`${Number(invoice.vat_rate || 5)}% VAT`, 100, y);
-      doc.text(`${curr} ${Number(invoice.vat_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, 175, y);
-      y += 7;
-
-      // 4. Deductibles if any
       let parsedDeductibles: any[] = [];
       try {
         if (typeof invoice.deductibles === "string") {
@@ -226,73 +115,145 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
         } else if (Array.isArray(invoice.deductibles)) {
           parsedDeductibles = invoice.deductibles;
         }
-      } catch (e) {
+      } catch {
         parsedDeductibles = [];
       }
 
-      if (Array.isArray(parsedDeductibles) && parsedDeductibles.length > 0) {
-        parsedDeductibles.forEach((d) => {
-          if (Number(d.amount) > 0) {
-            doc.text(`Less Deductible: ${d.label || "Deduction"}`, 18, y);
-            doc.text("Adjustment", 100, y);
-            doc.text(`- ${curr} ${Number(d.amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, 175, y);
-            y += 6;
-          }
-        });
-      }
+      const validDeductibles = Array.isArray(parsedDeductibles)
+        ? parsedDeductibles.filter((d) => Number(d?.amount || 0) > 0)
+        : [];
+      const totalDeductibles = validDeductibles.reduce((sum, d) => sum + Number(d.amount || 0), 0);
 
-      // Divider & Total
-      y += 2;
-      doc.line(15, y, 195, y);
-      y += 8;
+      const vatAmt = Number(invoice.vat_amount || 0);
+      const vatRate =
+        invoice.vat_rate !== undefined && invoice.vat_rate !== null && invoice.vat_rate !== ""
+          ? Number(invoice.vat_rate)
+          : vatAmt > 0
+            ? 5
+            : 0;
 
-      doc.setFillColor(254, 242, 242);
-      doc.rect(100, y - 5, 95, 14, "F");
-      doc.setTextColor(220, 38, 38);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      doc.text("NET PAYABLE AMOUNT:", 104, y + 4);
-      doc.text(
-        `${curr} ${Number(invoice.gross_amount || invoice.net_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
-        160,
-        y + 4
-      );
-
-      // Signature Status Box if signed
       const activeSig = signatureHistory?.activeRequest;
-      if (activeSig?.status === "SIGNED") {
-        y += 20;
-        doc.setFillColor(240, 253, 244);
-        doc.setDrawColor(187, 247, 208);
-        doc.rect(15, y, 180, 24, "FD");
+      const statusLabel =
+        activeSig?.status === "SIGNED"
+          ? "Verified & Signed"
+          : activeSig?.status === "VIEWED"
+            ? "Viewed by Agent"
+            : activeSig?.status === "SENT"
+              ? "Awaiting Signature"
+              : activeSig?.status === "DECLINED"
+                ? "Declined"
+                : invoice.is_locked
+                  ? "Locked"
+                  : "Active";
 
-        doc.setTextColor(22, 163, 74);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(9.5);
-        doc.text("ELECTRONICALLY SIGNED & VERIFIED", 20, y + 7);
-
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);
-        doc.setTextColor(71, 85, 105);
-        doc.text(`Signer: ${activeSig.signed_name || invoice.agent_name}`, 20, y + 13);
-        doc.text(
-          `Signed At: ${activeSig.signed_at ? new Date(activeSig.signed_at).toLocaleString() : "Recorded"}`,
-          20,
-          y + 18
-        );
-        doc.text(`SHA-256 Audit Digest: ${activeSig.snapshot_hash || "Verified"}`, 100, y + 18);
+      const agentLines: string[] = [
+        `Agent Code: ${invoice.agent_code || "N/A"}`,
+        `Team: ${invoice.team_name || "General"}${invoice.subteam_name ? ` • ${invoice.subteam_name}` : ""}`,
+        `Email: ${invoice.agent_email || "Not specified on record"}`,
+      ];
+      if (invoice.agent_mobile) {
+        agentLines.push(`Mobile: ${invoice.agent_mobile}`);
       }
 
-      // Footer
-      doc.setFontSize(7.5);
-      doc.setTextColor(148, 163, 184);
-      doc.text(
-        `Generated on ${new Date().toLocaleDateString()} • Invoicing System • ${compName}`,
-        15,
-        285
-      );
+      const dealLines: string[] = [
+        `Project & Unit: ${invoice.project_name || "Not specified"}${invoice.unit_number ? ` • Unit ${invoice.unit_number}` : ""}`,
+      ];
+      if (invoice.project_location) {
+        dealLines.push(invoice.project_location);
+      }
+      dealLines.push(`Buyer / Customer: ${invoice.buyer_name || "Not specified on record"}`);
+      if (Number(invoice.project_value) > 0) {
+        dealLines.push(`Sale Value: ${curr} ${fmt(Number(invoice.project_value))}`);
+      }
 
-      doc.save(`Invoice_${invoice.invoice_number}.pdf`);
+      const items = [
+        {
+          description: "Gross Commission Received",
+          subDescription: "Developer payment for closed transaction",
+          basisOrRate: "Base Deal",
+          taxTreatment: "Standard Rate",
+          amountText: fmt(Number(invoice.commission_received || 0)),
+        },
+        {
+          description: "Agent Commission Split",
+          subDescription: "Contractual split rate applied to received commission",
+          basisOrRate: `${Number(invoice.commission_rate || 0)}%`,
+          taxTreatment: "Net Taxable",
+          amountText: fmt(Number(invoice.net_amount || 0)),
+        },
+        {
+          description: "Value Added Tax (Output VAT)",
+          subDescription: vatAmt > 0 ? `Standard ${vatRate}% VAT applied` : "Zero-rated or exempt",
+          basisOrRate: `${vatRate}%`,
+          taxTreatment: vatAmt > 0 ? "Output VAT" : "Exempt",
+          amountText: fmt(vatAmt),
+          isTaxPositive: vatAmt > 0,
+        },
+        ...validDeductibles.map((d) => ({
+          description: `Less Deductible: ${d.label || "Deduction"}`,
+          basisOrRate: "—",
+          taxTreatment: "Deduction",
+          amountText: `- ${fmt(Number(d.amount || 0))}`,
+          isDeduction: true,
+        })),
+      ];
+
+      const settlementLines: string[] = [];
+      if (profile?.bank_name || profile?.iban) {
+        if (profile?.bank_name) settlementLines.push(`Bank: ${profile.bank_name}`);
+        if (profile?.account_name) settlementLines.push(`Account Name: ${profile.account_name}`);
+        if (profile?.iban) settlementLines.push(`IBAN: ${profile.iban}`);
+        if (profile?.swift_code) settlementLines.push(`SWIFT: ${profile.swift_code}`);
+      } else {
+        settlementLines.push(
+          "Commission payout is processed in accordance with approved agency split agreements and itemized deductions shown above."
+        );
+      }
+
+      await generateInvoicePdf({
+        fileName: `Invoice_${invoice.invoice_number}.pdf`,
+        badgeText: invoice.invoice_type
+          ? String(invoice.invoice_type).replace(/_/g, " ")
+          : "COMMISSION INVOICE",
+        invoiceNumber: invoice.invoice_number,
+        issueDate: invoice.issued_date ? new Date(invoice.issued_date).toISOString().slice(0, 10) : "Not recorded",
+        statusLabel,
+        companyName: compName,
+        companyAddress: compAddress,
+        companyTrn: trnVal,
+        logoUrl: logo?.s3_url || profile?.default_logo_url || "/fhi.png",
+        leftParty: {
+          title: "AGENT PARTICULARS",
+          heading: invoice.agent_name || "Agent",
+          lines: agentLines,
+        },
+        rightParty: {
+          title: "DEAL & PROPERTY PARTICULARS",
+          heading: invoice.developer_name || "Developer / Vendor not specified",
+          lines: dealLines,
+        },
+        currency: curr,
+        items,
+        settlementLines,
+        paymentTerms:
+          profile?.payment_terms || "For split or deduction inquiries, please contact Finance prior to signing.",
+        netLabel: "Net Commission:",
+        netValue: `${curr} ${fmt(Number(invoice.net_amount || 0))}`,
+        vatLabel: `Output VAT (${vatRate}%):`,
+        vatValue: `+ ${curr} ${fmt(vatAmt)}`,
+        deductiblesValue: totalDeductibles > 0 ? `- ${curr} ${fmt(totalDeductibles)}` : null,
+        totalLabel: "Gross Payable Amount:",
+        totalValue: `${curr} ${fmt(Number(invoice.gross_amount || invoice.net_amount || 0))}`,
+        remarks: invoice.remarks || null,
+        footerTitle: "Official Real Estate Commission Statement",
+        signature: {
+          isSigned: activeSig?.status === "SIGNED",
+          signedName: activeSig?.signed_name || invoice.agent_name,
+          signedAt: activeSig?.signed_at,
+          signatureDataUrl: activeSig?.signed_signature_data,
+          snapshotHash: activeSig?.snapshot_hash,
+        },
+      });
     } catch (err) {
       console.error("PDF generation failed:", err);
       alert("Failed to generate PDF. Please try using the Print button.");

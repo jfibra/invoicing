@@ -18,7 +18,7 @@ import {
   Lock,
   Landmark,
 } from "lucide-react";
-import { jsPDF } from "jspdf";
+import { generateInvoicePdf } from "@/lib/invoicePdfGenerator";
 import { normalizeInvoiceSnapshot } from "@/lib/snapshotNormalize";
 import { useSinglePagePrint } from "@/lib/useSinglePagePrint";
 
@@ -255,95 +255,110 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
     }
   };
 
-  // Download PDF
-  const handleDownloadPdf = () => {
+  // Download PDF using unified executive A4 generator
+  const handleDownloadPdf = async () => {
     if (!sigData?.snapshot) return;
-    const norm = normalizeInvoiceSnapshot(sigData.snapshot);
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    try {
+      const norm = normalizeInvoiceSnapshot(sigData.snapshot);
+      const curr = norm.currency || "AED";
+      const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
+      const issuedLabel = norm.issuedDate ? new Date(norm.issuedDate).toLocaleDateString() : "N/A";
 
-    doc.setFillColor(220, 38, 38);
-    doc.rect(0, 0, 210, 25, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text(norm.invoiceTypeLabel.toUpperCase(), 15, 16);
+      const items = [
+        ...(norm.commissionReceived && norm.commissionReceived > 0
+          ? [
+              {
+                description: "Gross Commission Received",
+                subDescription: "Developer payment for closed transaction",
+                basisOrRate: "Base Deal",
+                taxTreatment: "Standard Rate",
+                amountText: fmt(norm.commissionReceived),
+              },
+            ]
+          : []),
+        {
+          description: norm.categoryTitle,
+          subDescription: `${norm.projectOrParticular}${norm.unitNumber ? ` • Unit ${norm.unitNumber}` : ""}`,
+          basisOrRate:
+            norm.commissionRate !== null && norm.commissionRate !== undefined
+              ? `${norm.commissionRate}%`
+              : "Net Split",
+          taxTreatment: "Net Taxable",
+          amountText: fmt(norm.netAmount),
+        },
+        {
+          description: "Value Added Tax (Output VAT)",
+          subDescription: norm.vatAmount > 0 ? `Standard ${norm.vatRate}% VAT applied` : "Zero-rated or exempt",
+          basisOrRate: `${norm.vatRate}%`,
+          taxTreatment: norm.vatAmount > 0 ? "Output VAT" : "Exempt",
+          amountText: fmt(norm.vatAmount),
+          isTaxPositive: norm.vatAmount > 0,
+        },
+        ...norm.deductibles.map((ded) => ({
+          description: `Less Deductible: ${ded.label}`,
+          basisOrRate: "—",
+          taxTreatment: "Deduction",
+          amountText: `- ${fmt(ded.amount)}`,
+          isDeduction: true,
+        })),
+      ];
 
-    doc.setTextColor(30, 41, 59);
-    doc.setFontSize(12);
-    doc.text(norm.companyName, 15, 36);
+      const clientLines: string[] = [
+        `Project / Particular: ${norm.projectOrParticular}${norm.unitNumber ? ` • Unit ${norm.unitNumber}` : ""}`,
+      ];
+      if (norm.buyerName) clientLines.push(`Buyer: ${norm.buyerName}`);
+      if (norm.tinNumber) clientLines.push(`TRN / TIN: ${norm.tinNumber}`);
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(100, 116, 139);
-    doc.text(`TRN: ${norm.companyTrn}`, 15, 42);
-    doc.text(`Date: ${norm.issuedDate ? new Date(norm.issuedDate).toLocaleDateString() : "N/A"}`, 15, 47);
-
-    doc.text(`Invoice #: ${sigData.invoice_number}`, 135, 36);
-    doc.text(`Agent: ${sigData.agent_name} (${norm.memberCode})`, 135, 42);
-    doc.text(`Team: ${norm.team}${norm.subteam ? ` • ${norm.subteam}` : ""}`, 135, 47);
-    doc.text(`Status: ${sigData.status}`, 135, 52);
-
-    doc.setDrawColor(226, 232, 240);
-    doc.line(15, 57, 195, 57);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text("STATEMENT DETAILS", 15, 65);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text(`Client/Developer: ${norm.customerOrDeveloper}`, 15, 73);
-    doc.text(
-      `Project / Particular: ${norm.projectOrParticular}${norm.unitNumber ? ` • Unit ${norm.unitNumber}` : ""}`,
-      15,
-      79
-    );
-    if (norm.buyerName) {
-      doc.text(`Buyer: ${norm.buyerName}`, 15, 85);
+      await generateInvoicePdf({
+        fileName: `Invoice_${sigData.invoice_number}.pdf`,
+        badgeText: norm.invoiceTypeLabel.toUpperCase(),
+        invoiceNumber: sigData.invoice_number,
+        issueDate: issuedLabel,
+        statusLabel: sigData.status || "ACTIVE",
+        companyName: norm.companyName,
+        companyAddress: "Dubai, United Arab Emirates",
+        companyTrn: norm.companyTrn,
+        logoUrl: "/fhi.png",
+        leftParty: {
+          title: "AGENT RECIPIENT",
+          heading: sigData.agent_name || "Agent",
+          lines: [
+            `Code: ${norm.memberCode} • ${norm.team}${norm.subteam ? ` • ${norm.subteam}` : ""}`,
+            `Email: ${sigData.agent_email || "N/A"}`,
+          ],
+        },
+        rightParty: {
+          title: "CLIENT / DEVELOPER",
+          heading: norm.customerOrDeveloper,
+          lines: clientLines,
+        },
+        currency: curr,
+        items,
+        settlementLines: [
+          "Commission payout is processed in accordance with approved agency split agreements and itemized deductions shown above.",
+        ],
+        paymentTerms: "For split or deduction inquiries, please contact Finance prior to signing.",
+        netLabel: "Net Commission:",
+        netValue: `${curr} ${fmt(norm.netAmount)}`,
+        vatLabel: `Output VAT (${norm.vatRate}%):`,
+        vatValue: `+ ${curr} ${fmt(norm.vatAmount)}`,
+        deductiblesValue: norm.totalDeductibles > 0 ? `- ${curr} ${fmt(norm.totalDeductibles)}` : null,
+        totalLabel: "Total Net Amount Payable:",
+        totalValue: `${curr} ${fmt(norm.totalAmount)}`,
+        remarks: norm.remarks || null,
+        footerTitle: "Official Real Estate Commission Statement",
+        signature: {
+          isSigned: sigData.status === "SIGNED",
+          signedName: sigData.signed_name,
+          signedAt: sigData.signed_at,
+          signatureDataUrl: sigData.signed_signature_data,
+          snapshotHash: sigData.snapshot_hash,
+        },
+      });
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+      alert("Failed to generate PDF. Please try using the Print button.");
     }
-
-    let y = norm.buyerName ? 94 : 88;
-    doc.text(
-      `Net Commission: ${norm.currency} ${norm.netAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
-      15,
-      y
-    );
-    y += 6;
-    doc.text(
-      `VAT (${norm.vatRate}%): ${norm.currency} ${norm.vatAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
-      15,
-      y
-    );
-    for (const ded of norm.deductibles) {
-      y += 6;
-      doc.text(
-        `Less Deductible (${ded.label}): - ${norm.currency} ${ded.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
-        15,
-        y
-      );
-    }
-    y += 8;
-    doc.setFont("helvetica", "bold");
-    doc.text(
-      `Total Payable: ${norm.currency} ${norm.totalAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
-      15,
-      y
-    );
-
-    if (sigData.status === "SIGNED") {
-      const boxY = Math.max(y + 12, 120);
-      doc.setFillColor(240, 253, 244);
-      doc.rect(15, boxY, 180, 25, "F");
-      doc.setTextColor(22, 163, 74);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.text(`SIGNED ELECTRONICALLY BY: ${sigData.signed_name}`, 20, boxY + 8);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.text(`Timestamp: ${new Date(sigData.signed_at).toLocaleString()}`, 20, boxY + 14);
-      doc.text(`Hash: ${sigData.snapshot_hash || "SHA-256 Verified"}`, 20, boxY + 19);
-    }
-
-    doc.save(`Invoice_${sigData.invoice_number}.pdf`);
   };
 
   if (loading) {

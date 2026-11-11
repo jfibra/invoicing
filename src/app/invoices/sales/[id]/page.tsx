@@ -30,7 +30,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import SendSignatureModal from "@/components/SendSignatureModal";
-import { jsPDF } from "jspdf";
+import { generateInvoicePdf } from "@/lib/invoicePdfGenerator";
 
 interface SalesInvoicePageProps {
   params: Promise<{ id: string }>;
@@ -91,154 +91,114 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
   }, [fetchSaleInvoice]);
 
   // Handle PDF Download using jsPDF
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     if (!sale) return;
     setDownloadingPdf(true);
     try {
-      const doc = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
-
       const curr = profile?.currency || "AED";
+      const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
       const compName = profile?.company_name || "FHI Global Property LLC";
       const compTrn = profile?.trn_number || "105088815300001";
+      const compAddress = address
+        ? `${address.building_name || ""}, ${address.street_address || ""}, ${address.city || ""}, ${address.country || ""}`
+            .replace(/(^,\s*|,\s*$)/g, "")
+            .trim()
+        : "Dubai, United Arab Emirates";
       const invNum = sale.invoice_number || sale.sale_number;
-      const saleDate = sale.sale_date ? new Date(sale.sale_date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "N/A";
+      const saleDate = sale.sale_date
+        ? new Date(sale.sale_date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+        : "Not specified";
 
-      // Header Banner
-      doc.setFillColor(220, 38, 38); // Red
-      doc.rect(0, 0, 210, 25, "F");
-      doc.setTextColor(255, 255, 255);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(14);
-      doc.text("TAX INVOICE / COMMISSION STATEMENT", 15, 16);
+      const activeSig = signatureHistory?.activeRequest;
+      const statusLabel =
+        activeSig?.status === "SIGNED"
+          ? "Verified & Signed"
+          : activeSig?.status === "VIEWED"
+            ? "Viewed by Agent"
+            : activeSig?.status === "SENT"
+              ? "Awaiting Signature"
+              : activeSig?.status === "DECLINED"
+                ? "Declined by Agent"
+                : sale.status || "RECORDED";
 
-      // Company Info
-      doc.setTextColor(30, 41, 59);
-      doc.setFontSize(12);
-      doc.text(compName, 15, 36);
+      const netAmt = Number(sale.gross_taxable || sale.amount || 0);
+      const vatAmt = Number(sale.vat_amount || 0);
+      const vatRate = sale.tax_type === "VAT" ? 5 : vatAmt > 0 ? 5 : 0;
+      const totalAmt = Number(sale.total_actual_amount || sale.gross_taxable || 0);
 
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`TRN: ${compTrn}`, 15, 42);
-      if (address) {
-        doc.text(`${address.building_name || ""}, ${address.street_address || ""}, ${address.city || ""}`, 15, 47);
+      const clientLines: string[] = [`TRN / TIN: ${sale.tin_number || "Not specified"}`];
+      if (trnRecord) {
+        const addrLine = `${trnRecord.street_address || ""} ${trnRecord.city || ""} ${trnRecord.country || ""}`.trim();
+        if (addrLine) clientLines.push(addrLine);
       }
 
-      // Invoice Details Block (Right)
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(30, 41, 59);
-      doc.text(`Invoice Ref: ${invNum}`, 140, 36);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.text(`Date: ${saleDate}`, 140, 42);
-      doc.text(`Status: ${sale.status || "RECORDED"}`, 140, 47);
+      const agentLines: string[] = [
+        `Member Code: ${sale.member_code || "N/A"}`,
+        `Sales Team: ${sale.team || "Direct / No Team"}${sale.subteam ? ` (${sale.subteam})` : ""}`,
+      ];
+      if (sale.agent_email) agentLines.push(`Email: ${sale.agent_email}`);
 
-      // Horizontal Divider
-      doc.setDrawColor(226, 232, 240);
-      doc.line(15, 54, 195, 54);
-
-      // Billed To / Client
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.text("BILLED TO / DEVELOPER:", 15, 62);
-      doc.setFontSize(11);
-      doc.setTextColor(15, 23, 42);
-      doc.text(sale.customer_name || "N/A", 15, 68);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Client TRN/TIN: ${sale.tin_number || "Not specified"}`, 15, 73);
-
-      // Agent Attribution Block
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(30, 41, 59);
-      doc.text("AGENT ATTRIBUTION:", 140, 62);
-      doc.setFontSize(10);
-      doc.setTextColor(15, 23, 42);
-      doc.text(sale.fullname || "Not specified", 140, 68);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Member Code: ${sale.member_code || "N/A"}`, 140, 73);
-      doc.text(`Team: ${sale.team || "Direct / No Team"}`, 140, 78);
-
-      // Table Header
-      doc.setFillColor(241, 245, 249);
-      doc.rect(15, 88, 180, 8, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(71, 85, 105);
-      doc.text("DESCRIPTION / PROJECT PARTICULAR", 18, 93);
-      doc.text("NET (EXCL. VAT)", 125, 93);
-      doc.text("VAT", 155, 93);
-      doc.text("TOTAL", 180, 93);
-
-      // Item Row
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(15, 23, 42);
-      const particular = `${sale.category_name || "Sales Commission"} - ${sale.subcategory_name || "Property Brokerage"}`;
-      doc.text(particular.substring(0, 50), 18, 103);
-      doc.text(`${Number(sale.amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, 125, 103);
-      doc.text(`${Number(sale.vat_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, 155, 103);
-      doc.setFont("helvetica", "bold");
-      doc.text(`${Number(sale.total_actual_amount || sale.gross_taxable || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, 180, 103);
-
-      // Remarks note
-      if (sale.remarks) {
-        doc.setFont("helvetica", "italic");
-        doc.setFontSize(8);
-        doc.setTextColor(100, 116, 139);
-        doc.text(`Notes: ${sale.remarks.substring(0, 80)}`, 18, 112);
-      }
-
-      // Summary Box
-      doc.setDrawColor(226, 232, 240);
-      doc.line(115, 125, 195, 125);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(71, 85, 105);
-      doc.text("Subtotal (Gross Taxable):", 120, 132);
-      doc.text(`${curr} ${Number(sale.gross_taxable || sale.amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, 195, 132, { align: "right" });
-
-      doc.text(`Output VAT (${sale.vat_treatment || "5%"}):`, 120, 138);
-      doc.text(`${curr} ${Number(sale.vat_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, 195, 138, { align: "right" });
-
-      doc.setFillColor(248, 250, 252);
-      doc.rect(115, 142, 80, 10, "F");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(15, 23, 42);
-      doc.text("Total Receivable Amount:", 118, 148);
-      doc.setTextColor(22, 163, 74);
-      doc.text(`${curr} ${Number(sale.total_actual_amount || sale.gross_taxable || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}`, 193, 148, { align: "right" });
-
-      // Banking Details
-      if (profile?.bank_name) {
-        doc.setFillColor(248, 250, 252);
-        doc.rect(15, 165, 180, 22, "F");
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
-        doc.setTextColor(71, 85, 105);
-        doc.text("SETTLEMENT BANK DETAILS", 20, 171);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);
-        doc.text(`Bank: ${profile.bank_name || ""} | Account: ${profile.account_name || ""}`, 20, 176);
-        doc.text(`IBAN: ${profile.iban || ""} | SWIFT: ${profile.swift_code || ""}`, 20, 181);
-      }
-
-      // Footer
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(148, 163, 184);
-      doc.text("Official Tax Invoice generated via Filipino Homes Commissions Portal.", 105, 280, { align: "center" });
-
-      doc.save(`Sales_Invoice_${invNum}.pdf`);
+      await generateInvoicePdf({
+        fileName: `Sales_Invoice_${invNum}.pdf`,
+        badgeText: "TAX INVOICE • SALES RECORD",
+        invoiceNumber: invNum,
+        issueDate: saleDate,
+        statusLabel,
+        companyName: compName,
+        companyAddress: compAddress,
+        companyTrn: compTrn,
+        logoUrl: "/fhi.png",
+        leftParty: {
+          title: "BILLED TO • DEVELOPER / CLIENT",
+          heading: sale.customer_name || "N/A",
+          lines: clientLines,
+        },
+        rightParty: {
+          title: "AGENT ATTRIBUTION • COMMISSION SPLIT",
+          heading: sale.fullname || "Unassigned Agent",
+          lines: agentLines,
+        },
+        currency: curr,
+        items: [
+          {
+            description: sale.category_name || "COMMISSION SALES",
+            subDescription: sale.subcategory_name || "Standard Real Estate Transaction",
+            basisOrRate: sale.payment_method || "BANK_TRANSFER",
+            taxTreatment: sale.vat_treatment || (vatAmt > 0 ? "Standard Rate" : "Zero-rated"),
+            amountText: fmt(Number(sale.amount || netAmt)),
+          },
+          {
+            description: "Value Added Tax (Output VAT)",
+            subDescription: vatAmt > 0 ? `Standard ${vatRate}% VAT applied` : "Zero-rated or exempt",
+            basisOrRate: `${vatRate}%`,
+            taxTreatment: vatAmt > 0 ? "Output VAT" : "Exempt",
+            amountText: fmt(vatAmt),
+            isTaxPositive: vatAmt > 0,
+          },
+        ],
+        settlementLines: [
+          `Bank: ${profile?.bank_name || "WIO Bank"}`,
+          `Account Name: ${profile?.account_name || "FHI Global Property LLC"}`,
+          `IBAN: ${profile?.iban || "AE900860000009185994189"}`,
+          `SWIFT / BIC: ${profile?.swift_code || "WIOBAEADXXX"}`,
+        ],
+        paymentTerms: profile?.payment_terms || "Payment due upon invoice receipt.",
+        netLabel: "Net Commission Subtotal:",
+        netValue: `${curr} ${fmt(netAmt)}`,
+        vatLabel: `Output VAT (${vatRate}%):`,
+        vatValue: `+ ${curr} ${fmt(vatAmt)}`,
+        totalLabel: "Total Amount Receivable:",
+        totalValue: `${curr} ${fmt(totalAmt)}`,
+        remarks: sale.remarks || null,
+        footerTitle: "Official Tax Invoice • Sales Record",
+        signature: {
+          isSigned: activeSig?.status === "SIGNED",
+          signedName: activeSig?.signed_name || sale.fullname,
+          signedAt: activeSig?.signed_at,
+          signatureDataUrl: activeSig?.signed_signature_data,
+          snapshotHash: activeSig?.snapshot_hash,
+        },
+      });
     } catch (err) {
       console.error("PDF generation error:", err);
       alert("Failed to generate PDF. You can also use Print to PDF.");
