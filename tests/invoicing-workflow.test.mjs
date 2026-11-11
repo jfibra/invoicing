@@ -440,6 +440,21 @@ test("Snapshot Normalization: Supports COMMISSION_INVOICE snake_case and SALES_I
   assert.equal(salesSnap.vatRate, 5);
   assert.equal(salesSnap.totalAmount, 10500);
   assert.equal(salesSnap.deductibles.length, 0);
+
+  // Empty-string camelCase keys must never shadow populated snake_case values
+  const mixedSnap = normalizeInvoiceSnapshot({
+    saleDate: "",
+    issued_date: "2026-10-17",
+    amount: "",
+    net_amount: "53170.18",
+    gross_amount: "13170.18",
+    customerName: "",
+    developer_name: "Azizi Developments",
+  });
+  assert.equal(mixedSnap.issuedDate, "2026-10-17");
+  assert.equal(mixedSnap.netAmount, 53170.18);
+  assert.equal(mixedSnap.totalAmount, 13170.18);
+  assert.equal(mixedSnap.customerOrDeveloper, "Azizi Developments");
 });
 
 

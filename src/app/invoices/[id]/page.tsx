@@ -596,32 +596,32 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
         {/* ========================================================================= */}
         {/* THE FORMAL INVOICE SHEET VIEW (Clean Printable Document) */}
         {/* ========================================================================= */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-10 lg:p-12 space-y-8 print:rounded-none print:px-10 print:py-7 print:w-full print:max-w-none print:box-border print:border-none print:shadow-none print:space-y-3.5">
-          {/* Header Bar */}
-          <div className="flex flex-col sm:flex-row print:flex-row items-start justify-between gap-6 print:gap-4 border-b border-slate-200 pb-8 print:pb-3">
-            <div className="space-y-3">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:rounded-none print:p-0 print:w-full print:max-w-none print:box-border print:border-none print:shadow-none">
+          {/* Header Banner (#001f3f Navy for high-contrast white logo) */}
+          <div className="bg-[#001f3f] text-white border-b-4 border-red-600 p-6 sm:px-10 sm:py-7 print:px-10 print:py-5 flex flex-col sm:flex-row print:flex-row items-start justify-between gap-6 print:gap-4">
+            <div className="space-y-2.5">
               <div className="flex items-center gap-3">
                 <Image
                   src={logo?.s3_url || profile?.default_logo_url || "/fhi.png"}
                   alt="Company Logo"
                   width={180}
                   height={50}
-                  className="object-contain h-10 w-auto"
+                  className="object-contain h-11 w-auto"
                   priority
                 />
               </div>
               <div>
-                <h1 className="text-base sm:text-lg font-black text-slate-900">
+                <h1 className="text-base sm:text-lg font-black text-white">
                   {profile?.company_name || "FHI GLOBAL PROPERTY REAL ESTATE BROKERAGE LLC"}
                 </h1>
-                <p className="text-xs text-slate-500 font-medium">
+                <p className="text-xs text-slate-300 font-medium">
                   {address
                     ? `${address.address_line1 || ""} ${address.address_line2 ? `• ${address.address_line2}` : ""} • ${address.city || ""}, ${address.country || ""}`
                     : "Dubai, United Arab Emirates"}
                 </p>
-                <p className="text-xs text-slate-500 font-mono mt-0.5">
+                <p className="text-xs text-slate-300 font-mono mt-0.5">
                   Tax Registration No. (TRN):{" "}
-                  <strong className="text-slate-800">
+                  <strong className="text-white">
                     {profile?.tax_number || profile?.trn_number || "105088815300001"}
                   </strong>
                 </p>
@@ -629,23 +629,26 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
             </div>
 
             <div className="sm:text-right print:text-right space-y-2 print:space-y-1">
-              <span className="inline-block px-3 py-1 rounded-xl bg-red-50 text-red-700 border border-red-200 text-xs font-black uppercase tracking-wider">
+              <span className="inline-block px-3 py-1 rounded-xl bg-red-600 text-white text-xs font-black uppercase tracking-wider shadow-xs">
                 {invoice.invoice_type ? String(invoice.invoice_type).replace(/_/g, " ") : "COMMISSION INVOICE"}
               </span>
               <div className="space-y-0.5">
-                <span className="text-[10px] font-bold uppercase text-slate-400 block tracking-wider">
+                <span className="text-[10px] font-bold uppercase text-slate-300 block tracking-wider">
                   Invoice Number
                 </span>
-                <span className="text-base font-black font-mono text-slate-900 block">{invNumber}</span>
+                <span className="text-base font-black font-mono text-white block whitespace-nowrap">{invNumber}</span>
               </div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-slate-300">
                 <span>Issue Date: </span>
-                <strong className="text-slate-800">
+                <strong className="text-white whitespace-nowrap">
                   {invoice.issued_date ? new Date(invoice.issued_date).toISOString().slice(0, 10) : "Not recorded"}
                 </strong>
               </div>
             </div>
           </div>
+
+          {/* Body Content */}
+          <div className="p-6 sm:px-10 sm:py-8 print:px-10 print:py-5 space-y-8 print:space-y-3.5">
 
           {/* Parties Grid (Agent & Transaction Particulars) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6 print:gap-4 bg-slate-50 p-6 print:p-3.5 rounded-2xl border border-slate-200 text-xs">
@@ -922,10 +925,25 @@ export default function CommissionInvoiceDetailPage({ params }: CommissionInvoic
             </div>
           </div>
 
-          {/* Legal Footnote */}
-          <div className="pt-8 print:pt-3 border-t border-slate-100 text-[10px] print:text-[9px] text-slate-400 text-center leading-relaxed">
+          {/* Legal Footnote Notice */}
+          <div className="pt-4 print:pt-2 border-t border-slate-100 text-[10px] print:text-[9px] text-slate-400 text-center leading-relaxed">
             This statement was generated electronically by the FHI Global Property Commission Management System.
             All commissions and applicable tax calculations adhere to standard corporate accounting principles.
+          </div>
+          </div>
+
+          {/* Navy Branded Footer (#001f3f) */}
+          <div className="bg-[#001f3f] text-white border-t-4 border-red-600 px-6 py-4 sm:px-10 print:px-10 print:py-3 flex flex-col sm:flex-row print:flex-row items-center justify-between gap-2 text-[11px] print:break-inside-avoid">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-red-500 flex-shrink-0" />
+              <span className="font-bold">Official Real Estate Commission Statement</span>
+              <span className="text-slate-300 hidden sm:inline print:inline">
+                &bull; {profile?.company_name || "FHI Global Property LLC"}
+              </span>
+            </div>
+            <span className="font-mono text-slate-300 font-semibold whitespace-nowrap">
+              {invNumber} &bull; Page 1 of 1
+            </span>
           </div>
         </div>
 

@@ -3902,7 +3902,7 @@ function CommissionInvoicesContent() {
           agentName={signatureModalInv.agent_name || signatureModalInv.member_name || "Agent"}
           agentCode={signatureModalInv.agent_code || signatureModalInv.member_code || ""}
           currency={signatureModalInv.currency || "AED"}
-          amountFormatted={Number(signatureModalInv.net_amount || signatureModalInv.total_amount || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+          amountFormatted={Number(signatureModalInv.gross_amount ?? signatureModalInv.net_amount ?? signatureModalInv.total_amount ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}
           snapshotData={signatureModalInv}
         />
       )}

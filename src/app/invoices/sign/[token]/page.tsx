@@ -380,7 +380,7 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 font-sans selection:bg-red-600 selection:text-white pb-20 print:min-h-0 print:bg-white print:pb-0">
       {/* Top Banner */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-6 py-3 shadow-xs print:hidden">
+      <header className="sticky top-0 z-30 bg-[#001f3f] text-white border-b-2 border-red-600 px-6 py-3 shadow-xs print:hidden">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Image
@@ -391,7 +391,7 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
               className="object-contain h-8 w-auto"
               priority
             />
-            <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200 text-[10px] font-black uppercase">
+            <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-black uppercase">
               Secure E-Sign
             </span>
           </div>
@@ -399,16 +399,16 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => window.print()}
-              className="px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer"
             >
-              <Printer className="w-3.5 h-3.5 text-slate-500" />
+              <Printer className="w-3.5 h-3.5 text-slate-200" />
               <span>Print</span>
             </button>
             <button
               onClick={handleDownloadPdf}
-              className="px-3 py-1.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5 text-slate-500" />
+              <Download className="w-3.5 h-3.5 text-slate-200" />
               <span>Download PDF</span>
             </button>
           </div>
@@ -481,25 +481,35 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
         )}
 
         {/* Invoice Statement Card */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-10 space-y-6 print:rounded-none print:border-none print:shadow-none print:px-10 print:py-7 print:w-full print:max-w-none print:box-border print:space-y-4">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row print:flex-row items-start justify-between gap-4 border-b border-slate-200 pb-6 print:pb-4">
-            <div>
-              <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-                {norm.companyName}
-              </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                TRN: <span className="font-mono font-bold text-slate-700">{norm.companyTrn}</span>
-              </p>
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden print:rounded-none print:border-none print:shadow-none print:p-0 print:w-full print:max-w-none print:box-border">
+          {/* Header Banner (#001f3f Navy for high-contrast white logo) */}
+          <div className="bg-[#001f3f] text-white border-b-4 border-red-600 p-6 sm:px-10 sm:py-6 print:px-10 print:py-5 flex flex-col sm:flex-row print:flex-row items-start justify-between gap-4">
+            <div className="space-y-2">
+              <Image
+                src="/fhi.png"
+                alt="Filipino Homes"
+                width={170}
+                height={48}
+                className="object-contain h-9 w-auto"
+                priority
+              />
+              <div>
+                <h1 className="text-base sm:text-lg font-black text-white tracking-tight">
+                  {norm.companyName}
+                </h1>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  TRN: <span className="font-mono font-bold text-white">{norm.companyTrn}</span>
+                </p>
+              </div>
             </div>
             <div className="sm:text-right print:text-right text-xs space-y-1">
-              <span className="px-3 py-1 rounded-full bg-slate-900 text-white font-black text-[10px] uppercase tracking-wider inline-block">
+              <span className="px-3 py-1 rounded-full bg-red-600 text-white font-black text-[10px] uppercase tracking-wider inline-block">
                 {norm.invoiceTypeLabel}
               </span>
-              <p className="font-mono text-sm font-black text-red-600">{sigData.invoice_number}</p>
-              <p className="text-slate-400">
+              <p className="font-mono text-sm font-black text-white whitespace-nowrap">{sigData.invoice_number}</p>
+              <p className="text-slate-300">
                 Date:{" "}
-                <span className="text-slate-700 font-semibold">
+                <span className="text-white font-semibold whitespace-nowrap">
                   {norm.issuedDate
                     ? new Date(norm.issuedDate).toLocaleDateString()
                     : "N/A"}
@@ -507,6 +517,9 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
               </p>
             </div>
           </div>
+
+          {/* Body Content */}
+          <div className="p-5 sm:p-8 print:px-10 print:py-5 space-y-6 print:space-y-3.5">
 
           {/* Parties */}
           <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-4 bg-slate-50 p-4 print:p-3.5 rounded-2xl text-xs">
@@ -538,28 +551,28 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
             <table className="w-full text-left text-xs">
               <thead className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
                 <tr>
-                  <th className="py-2.5 print:py-1.5">Item Description</th>
-                  <th className="py-2.5 print:py-1.5 text-right">Net Commission</th>
-                  <th className="py-2.5 print:py-1.5 text-right">VAT ({norm.vatRate}%)</th>
-                  <th className="py-2.5 print:py-1.5 text-right">Total Payout</th>
+                  <th className="py-2.5 pr-3 print:py-1.5">Item Description</th>
+                  <th className="py-2.5 px-2 print:py-1.5 text-right whitespace-nowrap">Net Comm.</th>
+                  <th className="py-2.5 px-2 print:py-1.5 text-right whitespace-nowrap">VAT ({norm.vatRate}%)</th>
+                  <th className="py-2.5 pl-2 print:py-1.5 text-right whitespace-nowrap">Total Payout</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 <tr>
-                  <td className="py-4 print:py-2.5">
+                  <td className="py-4 pr-3 print:py-2.5">
                     <p className="font-black text-slate-900">{norm.categoryTitle}</p>
                     <p className="text-slate-500 text-[11px] mt-0.5">
                       {norm.projectOrParticular}
                       {norm.unitNumber ? ` • Unit ${norm.unitNumber}` : ""}
                     </p>
                   </td>
-                  <td className="py-4 print:py-2.5 text-right font-mono font-bold text-slate-800">
+                  <td className="py-4 px-2 print:py-2.5 text-right font-mono tabular-nums whitespace-nowrap font-bold text-slate-800">
                     {norm.netAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                   </td>
-                  <td className="py-4 print:py-2.5 text-right font-mono text-slate-600">
+                  <td className="py-4 px-2 print:py-2.5 text-right font-mono tabular-nums whitespace-nowrap text-slate-600">
                     {norm.vatAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                   </td>
-                  <td className="py-4 print:py-2.5 text-right font-mono font-black text-slate-900 text-sm">
+                  <td className="py-4 pl-2 print:py-2.5 text-right font-mono tabular-nums whitespace-nowrap font-black text-slate-900 text-sm">
                     {norm.totalAmount.toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                     })}
@@ -568,10 +581,10 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
 
                 {norm.deductibles.map((ded, idx) => (
                   <tr key={idx} className="bg-amber-50/30">
-                    <td className="py-2.5 print:py-1.5 text-amber-900 font-semibold" colSpan={3}>
+                    <td className="py-2.5 pr-3 print:py-1.5 text-amber-900 font-semibold" colSpan={3}>
                       Less Deductible: {ded.label}
                     </td>
-                    <td className="py-2.5 print:py-1.5 text-right font-mono font-bold text-amber-700">
+                    <td className="py-2.5 pl-2 print:py-1.5 text-right font-mono tabular-nums whitespace-nowrap font-bold text-amber-700">
                       - {ded.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                     </td>
                   </tr>
@@ -616,6 +629,19 @@ export default function InvoiceSigningPage({ params }: SignPageProps) {
               </div>
             </div>
           )}
+          </div>
+
+          {/* Navy Branded Footer (#001f3f) */}
+          <div className="bg-[#001f3f] text-white border-t-4 border-red-600 px-6 py-3.5 sm:px-8 print:px-10 print:py-3 flex flex-col sm:flex-row print:flex-row items-center justify-between gap-2 text-[11px] print:break-inside-avoid">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-red-500 flex-shrink-0" />
+              <span className="font-bold">Official Real Estate Commission Statement</span>
+              <span className="text-slate-300 hidden sm:inline print:inline">&bull; {norm.companyName}</span>
+            </div>
+            <span className="font-mono text-slate-300 font-semibold whitespace-nowrap">
+              {sigData.invoice_number} &bull; Page 1 of 1
+            </span>
+          </div>
         </div>
 
         {/* ========================================================================= */}

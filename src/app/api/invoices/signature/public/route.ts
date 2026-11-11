@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { commissionsDb } from "@/lib/db";
+import { RowDataPacket } from "mysql2";
 import {
   getSignatureRequestByToken,
   recordSignatureView,
@@ -41,6 +43,34 @@ export async function GET(request: NextRequest) {
       snapshot = JSON.parse(req.snapshot_json);
     } catch (e) {
       snapshot = {};
+    }
+
+    // Hydrate incomplete unsigned snapshots from source record if amounts were missing
+    const hasAmountKeys =
+      snapshot &&
+      (snapshot.gross_amount != null ||
+        snapshot.net_amount != null ||
+        snapshot.totalActualAmount != null ||
+        snapshot.grossAmount != null ||
+        snapshot.amount != null);
+    if (!hasAmountKeys && req.status !== "SIGNED" && req.record_id) {
+      if (req.record_type === "COMMISSION_INVOICE") {
+        const [invRows] = await commissionsDb.query<RowDataPacket[]>(
+          "SELECT * FROM generated_invoices WHERE id = ? LIMIT 1",
+          [req.record_id]
+        );
+        if (invRows.length > 0) {
+          snapshot = { ...invRows[0], ...(snapshot || {}) };
+        }
+      } else if (req.record_type === "SALES_INVOICE") {
+        const [saleRows] = await commissionsDb.query<RowDataPacket[]>(
+          "SELECT * FROM sales WHERE id = ? LIMIT 1",
+          [req.record_id]
+        );
+        if (saleRows.length > 0) {
+          snapshot = { ...saleRows[0], ...(snapshot || {}) };
+        }
+      }
     }
 
     // Return sanitized data only (no internal admin secrets)

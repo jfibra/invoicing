@@ -505,32 +505,32 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
         {/* ========================================================================= */}
         {/* INVOICE CANVAS / PRINT SHEET (Pixel-Perfect Matching Company Identity) */}
         {/* ========================================================================= */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-md p-8 sm:p-12 space-y-8 print:rounded-none print:border-none print:shadow-none print:px-10 print:py-7 print:w-full print:max-w-none print:box-border print:space-y-3.5">
-          {/* Header Row */}
-          <div className="flex flex-col sm:flex-row print:flex-row items-start justify-between gap-6 print:gap-4 border-b border-slate-200 pb-8 print:pb-3">
-            <div className="space-y-3">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-md overflow-hidden print:rounded-none print:border-none print:shadow-none print:p-0 print:w-full print:max-w-none print:box-border">
+          {/* Header Banner (#001f3f Navy for high-contrast white logo) */}
+          <div className="bg-[#001f3f] text-white border-b-4 border-red-600 p-6 sm:px-10 sm:py-7 print:px-10 print:py-5 flex flex-col sm:flex-row print:flex-row items-start justify-between gap-6 print:gap-4">
+            <div className="space-y-2.5">
               <div className="flex items-center gap-3">
                 <Image
                   src="/fhi.png"
                   alt="Filipino Homes | Leuterio Realty"
                   width={200}
                   height={55}
-                  className="object-contain h-10 w-auto"
+                  className="object-contain h-11 w-auto"
                   priority
                 />
               </div>
-              <div className="text-xs text-slate-500 space-y-0.5">
-                <p className="font-extrabold text-slate-900 text-sm">
+              <div className="text-xs text-slate-300 space-y-0.5">
+                <p className="font-extrabold text-white text-sm">
                   {profile?.company_name || "FHI Global Property LLC"}
                 </p>
                 <p>
                   TRN:{" "}
-                  <span className="font-mono font-bold text-slate-700">
+                  <span className="font-mono font-bold text-white">
                     {profile?.trn_number || "105088815300001"}
                   </span>
                 </p>
                 {address && (
-                  <p className="max-w-xs">
+                  <p className="max-w-xs text-slate-300">
                     {address.building_name}, {address.street_address}, {address.city}, {address.country}
                   </p>
                 )}
@@ -539,17 +539,17 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
 
             {/* Document Title & Meta */}
             <div className="sm:text-right print:text-right space-y-2 print:space-y-1">
-              <span className="px-3 py-1 rounded-full bg-red-100 text-red-700 text-[11px] font-black uppercase tracking-wider inline-block">
+              <span className="px-3 py-1 rounded-full bg-red-600 text-white text-[11px] font-black uppercase tracking-wider inline-block shadow-xs">
                 TAX INVOICE &bull; SALES RECORD
               </span>
               <div className="space-y-1 text-xs">
                 <p>
-                  <span className="text-slate-400 font-medium">Invoice / Ref #:</span>{" "}
-                  <strong className="font-mono text-slate-900 text-sm">{invNumber}</strong>
+                  <span className="text-slate-300 font-medium">Invoice / Ref #:</span>{" "}
+                  <strong className="font-mono text-white text-sm whitespace-nowrap">{invNumber}</strong>
                 </p>
                 <p>
-                  <span className="text-slate-400 font-medium">Issue Date:</span>{" "}
-                  <strong className="text-slate-800">
+                  <span className="text-slate-300 font-medium">Issue Date:</span>{" "}
+                  <strong className="text-white whitespace-nowrap">
                     {sale.sale_date
                       ? new Date(sale.sale_date).toLocaleDateString("en-US", {
                           year: "numeric",
@@ -560,16 +560,19 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
                   </strong>
                 </p>
                 <p>
-                  <span className="text-slate-400 font-medium">Tax Treatment:</span>{" "}
-                  <strong className="text-slate-800">{sale.vat_treatment || "Standard Rate (5%)"}</strong>
+                  <span className="text-slate-300 font-medium">Tax Treatment:</span>{" "}
+                  <strong className="text-white">{sale.vat_treatment || "Standard Rate (5%)"}</strong>
                 </p>
                 <p>
-                  <span className="text-slate-400 font-medium">Payment Method:</span>{" "}
-                  <strong className="text-slate-800">{sale.payment_method || "BANK_TRANSFER"}</strong>
+                  <span className="text-slate-300 font-medium">Payment Method:</span>{" "}
+                  <strong className="text-white">{sale.payment_method || "BANK_TRANSFER"}</strong>
                 </p>
               </div>
             </div>
           </div>
+
+          {/* Body Content */}
+          <div className="p-6 sm:px-10 sm:py-8 print:px-10 print:py-5 space-y-8 print:space-y-3.5">
 
           {/* Party Details Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-6 print:gap-4 bg-slate-50/60 p-6 print:p-3.5 rounded-2xl border border-slate-100 text-xs">
@@ -782,6 +785,21 @@ export default function SalesInvoicePage({ params }: SalesInvoicePageProps) {
               </div>
             </div>
           )}
+          </div>
+
+          {/* Navy Branded Footer (#001f3f) */}
+          <div className="bg-[#001f3f] text-white border-t-4 border-red-600 px-6 py-4 sm:px-10 print:px-10 print:py-3 flex flex-col sm:flex-row print:flex-row items-center justify-between gap-2 text-[11px] print:break-inside-avoid">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-red-500 flex-shrink-0" />
+              <span className="font-bold">Official Tax Invoice &bull; Sales Record</span>
+              <span className="text-slate-300 hidden sm:inline print:inline">
+                &bull; {profile?.company_name || "FHI Global Property LLC"}
+              </span>
+            </div>
+            <span className="font-mono text-slate-300 font-semibold whitespace-nowrap">
+              {invNumber} &bull; Page 1 of 1
+            </span>
+          </div>
         </div>
 
         {/* Audit Event History Timeline */}

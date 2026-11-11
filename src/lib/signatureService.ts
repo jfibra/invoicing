@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { commissionsDb, leuterioDb } from "@/lib/db";
 import { sendEmail, escapeHtml, isValidEmail, EmailResult } from "@/lib/emailService";
+import { normalizeInvoiceSnapshot } from "@/lib/snapshotNormalize";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 export type SignatureStatus = "DRAFT" | "SENT" | "VIEWED" | "SIGNED" | "DECLINED" | "EXPIRED" | "REVOKED";
@@ -367,9 +368,40 @@ export async function createAndSendSignatureRequest({
       };
     }
 
+    // Ensure Commission Invoice snapshots contain complete authoritative record fields
+    let effectiveSnapshot = snapshot && typeof snapshot === "object" ? { ...snapshot } : {};
+    if (
+      recordType === "COMMISSION_INVOICE" &&
+      effectiveSnapshot.gross_amount == null &&
+      effectiveSnapshot.net_amount == null &&
+      effectiveSnapshot.grossAmount == null &&
+      effectiveSnapshot.netAmount == null
+    ) {
+      const [invRows] = await commissionsDb.query<RowDataPacket[]>(
+        "SELECT * FROM generated_invoices WHERE id = ? LIMIT 1",
+        [recordId]
+      );
+      if (invRows.length > 0) {
+        effectiveSnapshot = { ...invRows[0], ...effectiveSnapshot };
+      }
+    } else if (
+      recordType === "SALES_INVOICE" &&
+      effectiveSnapshot.totalActualAmount == null &&
+      effectiveSnapshot.amount == null &&
+      effectiveSnapshot.total_actual_amount == null
+    ) {
+      const [saleRows] = await commissionsDb.query<RowDataPacket[]>(
+        "SELECT * FROM sales WHERE id = ? LIMIT 1",
+        [recordId]
+      );
+      if (saleRows.length > 0) {
+        effectiveSnapshot = { ...saleRows[0], ...effectiveSnapshot };
+      }
+    }
+
     // High-entropy token
     const token = generateSecureToken();
-    const snapshotJson = JSON.stringify(snapshot);
+    const snapshotJson = JSON.stringify(effectiveSnapshot);
     const snapshotHash = computeSnapshotHash(snapshotJson);
 
     const expiresAtDate = new Date();
@@ -431,13 +463,14 @@ export async function createAndSendSignatureRequest({
       year: "numeric",
     });
 
+    const norm = normalizeInvoiceSnapshot(effectiveSnapshot);
     const emailHtml = generateSignatureEmailHtml({
       agentName,
       invoiceNumber,
-      amountFormatted: Number(snapshot.totalActualAmount || snapshot.grossAmount || 0).toLocaleString("en-US", {
+      amountFormatted: norm.totalAmount.toLocaleString("en-US", {
         minimumFractionDigits: 2,
       }),
-      currency: snapshot.currency || "AED",
+      currency: norm.currency,
       customMessage: message,
       reviewUrl,
       expiresAtFormatted: expiresFormatted,
@@ -805,13 +838,14 @@ export async function resendSignatureRequest({
       year: "numeric",
     });
 
+    const norm = normalizeInvoiceSnapshot(snapshot);
     const emailHtml = generateSignatureEmailHtml({
       agentName: req.agent_name,
       invoiceNumber: req.invoice_number,
-      amountFormatted: Number(snapshot.totalActualAmount || snapshot.grossAmount || 0).toLocaleString("en-US", {
+      amountFormatted: norm.totalAmount.toLocaleString("en-US", {
         minimumFractionDigits: 2,
       }),
-      currency: snapshot.currency || "AED",
+      currency: norm.currency,
       customMessage: req.message || undefined,
       reviewUrl,
       expiresAtFormatted: expiresFormatted,
